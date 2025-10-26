@@ -1,0 +1,173 @@
+openapi: 3.1.0
+info:
+  title: llmhub reference API
+  version: 1.0.0
+paths:
+  /provider-models:
+    get:
+      summary: List provider models
+      parameters:
+        - in: query
+          name: providers
+          schema:
+            type: string
+            description: Comma separated provider ids (openai, anthropic, google, xai)
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelMetadata'
+  /generate:
+    post:
+      summary: Run a single completion request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateInput'
+      responses:
+        '200':
+          description: Generation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateOutput'
+  /generate/stream:
+    post:
+      summary: Streaming generation via Server-Sent Events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateInput'
+      responses:
+        '200':
+          description: Stream of chunks
+          content:
+            text/event-stream:
+              schema:
+                type: string
+components:
+  schemas:
+    ModelMetadata:
+      type: object
+      required: [id, displayName, provider, capabilities]
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        provider:
+          type: string
+          enum: [openai, anthropic, google, xai]
+        family:
+          type: string
+        capabilities:
+          type: object
+          properties:
+            text: { type: boolean }
+            vision: { type: boolean }
+            tool_use: { type: boolean }
+            structured_output: { type: boolean }
+            reasoning: { type: boolean }
+        contextWindow:
+          type: integer
+        tokenPrices:
+          type: object
+          properties:
+            input: { type: number }
+            output: { type: number }
+        deprecated:
+          type: boolean
+        inPreview:
+          type: boolean
+    ContentPart:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [text, image]
+        text:
+          type: string
+        image:
+          type: object
+          properties:
+            url: { type: string }
+            base64: { type: string }
+            mediaType: { type: string }
+    Message:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant, tool]
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentPart'
+        toolCallId:
+          type: string
+    ToolDefinition:
+      type: object
+      required: [name, parameters]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        parameters: { type: object }
+    GenerateInput:
+      type: object
+      required: [provider, model, messages]
+      properties:
+        provider: { type: string }
+        model: { type: string }
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolDefinition'
+        responseFormat:
+          type: object
+        temperature:
+          type: number
+        topP:
+          type: number
+        maxTokens:
+          type: integer
+        stream:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    ToolCall:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        argumentsJson: { type: string }
+    GenerateOutput:
+      type: object
+      properties:
+        text: { type: string }
+        toolCalls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+        usage:
+          type: object
+          properties:
+            inputTokens: { type: integer }
+            outputTokens: { type: integer }
+            totalTokens: { type: integer }
+        finishReason:
+          type: string
