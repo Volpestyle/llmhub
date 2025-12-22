@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type Config struct {
 
 type OpenAIConfig struct {
 	APIKey              string
+	APIKeys             []string
 	BaseURL             string
 	Organization        string
 	DefaultUseResponses bool
@@ -25,18 +27,21 @@ type OpenAIConfig struct {
 
 type AnthropicConfig struct {
 	APIKey  string
+	APIKeys []string
 	BaseURL string
 	Version string
 }
 
 type XAIConfig struct {
 	APIKey            string
+	APIKeys           []string
 	BaseURL           string
 	CompatibilityMode string
 }
 
 type GoogleConfig struct {
 	APIKey  string
+	APIKeys []string
 	BaseURL string
 }
 
@@ -46,53 +51,77 @@ type adapter interface {
 	Stream(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error)
 }
 
+type adapterFactory func(provider Provider, entitlement *EntitlementContext) (adapter, error)
+
 type Hub struct {
 	adapters map[Provider]adapter
 	registry *modelRegistry
+	factory  adapterFactory
+	keyPools map[Provider]*keyPool
 }
 
 func New(config Config) (*Hub, error) {
 	adapters := make(map[Provider]adapter)
+	keyPools := make(map[Provider]*keyPool)
 	client := config.HTTPClient
 	if client == nil {
 		client = http.DefaultClient
 	}
 
 	if config.OpenAI != nil {
-		if config.OpenAI.APIKey == "" {
+		keys := normalizeKeys(config.OpenAI.APIKey, config.OpenAI.APIKeys)
+		if len(keys) == 0 {
 			return nil, fmt.Errorf("openai api key is required")
 		}
-		adapters[ProviderOpenAI] = newOpenAIAdapter(config.OpenAI, client, ProviderOpenAI)
+		cfg := *config.OpenAI
+		cfg.APIKey = keys[0]
+		adapters[ProviderOpenAI] = newOpenAIAdapter(&cfg, client, ProviderOpenAI)
+		keyPools[ProviderOpenAI] = newKeyPool(keys)
 	}
 	if config.Anthropic != nil {
-		if config.Anthropic.APIKey == "" {
+		keys := normalizeKeys(config.Anthropic.APIKey, config.Anthropic.APIKeys)
+		if len(keys) == 0 {
 			return nil, fmt.Errorf("anthropic api key is required")
 		}
-		adapters[ProviderAnthropic] = newAnthropicAdapter(config.Anthropic, client, ProviderAnthropic)
+		cfg := *config.Anthropic
+		cfg.APIKey = keys[0]
+		adapters[ProviderAnthropic] = newAnthropicAdapter(&cfg, client, ProviderAnthropic)
+		keyPools[ProviderAnthropic] = newKeyPool(keys)
 	}
 	if config.XAI != nil {
-		if config.XAI.APIKey == "" {
+		keys := normalizeKeys(config.XAI.APIKey, config.XAI.APIKeys)
+		if len(keys) == 0 {
 			return nil, fmt.Errorf("xai api key is required")
 		}
-		adapters[ProviderXAI] = newXAIAdapter(config.XAI, client)
+		cfg := *config.XAI
+		cfg.APIKey = keys[0]
+		adapters[ProviderXAI] = newXAIAdapter(&cfg, client)
+		keyPools[ProviderXAI] = newKeyPool(keys)
 	}
 	if config.Google != nil {
-		if config.Google.APIKey == "" {
+		keys := normalizeKeys(config.Google.APIKey, config.Google.APIKeys)
+		if len(keys) == 0 {
 			return nil, fmt.Errorf("google api key is required")
 		}
-		adapters[ProviderGoogle] = newGoogleAdapter(config.Google, client)
+		cfg := *config.Google
+		cfg.APIKey = keys[0]
+		adapters[ProviderGoogle] = newGoogleAdapter(&cfg, client)
+		keyPools[ProviderGoogle] = newKeyPool(keys)
 	}
 	if len(adapters) == 0 {
 		return nil, fmt.Errorf("at least one provider config is required")
 	}
 	ttl := config.RegistryTTL
 	if ttl == 0 {
-		ttl = 6 * time.Hour
+		ttl = 30 * time.Minute
 	}
-	registry := newModelRegistry(adapters, ttl)
+	factory := newAdapterFactory(config, client, adapters)
+	registry := newModelRegistry(adapters, ttl, factory)
 	return &Hub{
 		adapters: adapters,
 		registry: registry,
+		factory:  factory,
+		keyPools: keyPools,
 	}, nil
 }
 
@@ -100,18 +129,113 @@ func (h *Hub) ListModels(ctx context.Context, opts *ListModelsOptions) ([]ModelM
 	return h.registry.List(ctx, opts)
 }
 
+func (h *Hub) ListModelRecords(ctx context.Context, opts *ListModelsOptions) ([]ModelRecord, error) {
+	return h.registry.ListRecords(ctx, opts)
+}
+
 func (h *Hub) Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error) {
+	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
+		return h.GenerateWithContext(ctx, entitlement, in)
+	}
 	adapter, ok := h.adapters[in.Provider]
 	if !ok {
 		return GenerateOutput{}, fmt.Errorf("provider %s is not configured", in.Provider)
 	}
-	return adapter.Generate(ctx, in)
+	output, err := adapter.Generate(ctx, in)
+	if err != nil {
+		h.registry.LearnModelUnavailable(nil, in.Provider, in.Model, err)
+		return GenerateOutput{}, err
+	}
+	return output, nil
+}
+
+func (h *Hub) GenerateWithContext(ctx context.Context, entitlement *EntitlementContext, in GenerateInput) (GenerateOutput, error) {
+	adapter, err := h.factory(in.Provider, entitlement)
+	if err != nil {
+		return GenerateOutput{}, err
+	}
+	output, err := adapter.Generate(ctx, in)
+	if err != nil {
+		h.registry.LearnModelUnavailable(entitlement, in.Provider, in.Model, err)
+	}
+	return output, err
 }
 
 func (h *Hub) StreamGenerate(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
+	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
+		return h.StreamGenerateWithContext(ctx, entitlement, in)
+	}
 	adapter, ok := h.adapters[in.Provider]
 	if !ok {
 		return nil, fmt.Errorf("provider %s is not configured", in.Provider)
 	}
 	return adapter.Stream(ctx, in)
+}
+
+func (h *Hub) StreamGenerateWithContext(ctx context.Context, entitlement *EntitlementContext, in GenerateInput) (<-chan StreamChunk, error) {
+	adapter, err := h.factory(in.Provider, entitlement)
+	if err != nil {
+		return nil, err
+	}
+	return adapter.Stream(ctx, in)
+}
+
+func (h *Hub) entitlementForProvider(provider Provider) *EntitlementContext {
+	pool := h.keyPools[provider]
+	if pool == nil {
+		return nil
+	}
+	key := pool.Next()
+	if strings.TrimSpace(key) == "" {
+		return nil
+	}
+	return &EntitlementContext{
+		Provider:         provider,
+		APIKey:           key,
+		APIKeyFingerprint: FingerprintAPIKey(key),
+	}
+}
+
+func newAdapterFactory(config Config, client *http.Client, adapters map[Provider]adapter) adapterFactory {
+	return func(provider Provider, entitlement *EntitlementContext) (adapter, error) {
+		if entitlement == nil || strings.TrimSpace(entitlement.APIKey) == "" {
+			if adapter, ok := adapters[provider]; ok {
+				return adapter, nil
+			}
+			return nil, fmt.Errorf("provider %s is not configured", provider)
+		}
+		apiKey := strings.TrimSpace(entitlement.APIKey)
+		switch provider {
+		case ProviderOpenAI:
+			if config.OpenAI == nil {
+				return nil, fmt.Errorf("openai config is not available")
+			}
+			cfg := *config.OpenAI
+			cfg.APIKey = apiKey
+			return newOpenAIAdapter(&cfg, client, ProviderOpenAI), nil
+		case ProviderAnthropic:
+			if config.Anthropic == nil {
+				return nil, fmt.Errorf("anthropic config is not available")
+			}
+			cfg := *config.Anthropic
+			cfg.APIKey = apiKey
+			return newAnthropicAdapter(&cfg, client, ProviderAnthropic), nil
+		case ProviderXAI:
+			if config.XAI == nil {
+				return nil, fmt.Errorf("xai config is not available")
+			}
+			cfg := *config.XAI
+			cfg.APIKey = apiKey
+			return newXAIAdapter(&cfg, client), nil
+		case ProviderGoogle:
+			if config.Google == nil {
+				return nil, fmt.Errorf("google config is not available")
+			}
+			cfg := *config.Google
+			cfg.APIKey = apiKey
+			return newGoogleAdapter(&cfg, client), nil
+		default:
+			return nil, fmt.Errorf("provider %s is not configured", provider)
+		}
+	}
 }

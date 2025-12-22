@@ -34,6 +34,76 @@ type ModelMetadata struct {
 	InPreview     bool              `json:"inPreview,omitempty"`
 }
 
+type EntitlementContext struct {
+	Provider         Provider `json:"provider,omitempty"`
+	APIKey           string   `json:"apiKey,omitempty"`
+	APIKeyFingerprint string  `json:"apiKeyFingerprint,omitempty"`
+	AccountID        string   `json:"accountId,omitempty"`
+	Region           string   `json:"region,omitempty"`
+	Environment      string   `json:"environment,omitempty"`
+	TenantID         string   `json:"tenantId,omitempty"`
+	UserID           string   `json:"userId,omitempty"`
+}
+
+type ModelModalities struct {
+	Text     bool `json:"text"`
+	Vision   bool `json:"vision,omitempty"`
+	AudioIn  bool `json:"audioIn,omitempty"`
+	AudioOut bool `json:"audioOut,omitempty"`
+	ImageOut bool `json:"imageOut,omitempty"`
+}
+
+type ModelFeatures struct {
+	Tools      bool `json:"tools,omitempty"`
+	JSONMode   bool `json:"jsonMode,omitempty"`
+	JSONSchema bool `json:"jsonSchema,omitempty"`
+	Streaming  bool `json:"streaming,omitempty"`
+	Batch      bool `json:"batch,omitempty"`
+}
+
+type ModelLimits struct {
+	ContextTokens   int `json:"contextTokens,omitempty"`
+	MaxOutputTokens int `json:"maxOutputTokens,omitempty"`
+}
+
+type ModelPricing struct {
+	Currency       string             `json:"currency"`
+	InputPer1M     float64            `json:"inputPer1M,omitempty"`
+	CachedInputPer1M float64           `json:"cachedInputPer1M,omitempty"`
+	OutputPer1M    float64            `json:"outputPer1M,omitempty"`
+	Extras         map[string]float64 `json:"extras,omitempty"`
+	EffectiveAsOf  string             `json:"effectiveAsOf,omitempty"`
+	Source         string             `json:"source,omitempty"`
+}
+
+type AvailabilityConfidence string
+
+const (
+	AvailabilityListed  AvailabilityConfidence = "listed"
+	AvailabilityInferred AvailabilityConfidence = "inferred"
+	AvailabilityLearned AvailabilityConfidence = "learned"
+)
+
+type ModelAvailability struct {
+	Entitled      bool                  `json:"entitled"`
+	LastVerifiedAt string               `json:"lastVerifiedAt,omitempty"`
+	Confidence    AvailabilityConfidence `json:"confidence,omitempty"`
+	Reason        string                `json:"reason,omitempty"`
+}
+
+type ModelRecord struct {
+	ID              string           `json:"id"`
+	Provider         Provider         `json:"provider"`
+	ProviderModelID  string           `json:"providerModelId"`
+	DisplayName      string           `json:"displayName,omitempty"`
+	Modalities       ModelModalities  `json:"modalities"`
+	Features         ModelFeatures    `json:"features"`
+	Limits           *ModelLimits     `json:"limits,omitempty"`
+	Tags             []string         `json:"tags,omitempty"`
+	Pricing          *ModelPricing    `json:"pricing,omitempty"`
+	Availability     ModelAvailability `json:"availability"`
+}
+
 type ContentPart struct {
 	Type  string        `json:"type"`
 	Text  string        `json:"text,omitempty"`
@@ -138,4 +208,5 @@ type StreamChunk struct {
 type ListModelsOptions struct {
 	Providers []Provider
 	Refresh   bool
+	Entitlement *EntitlementContext
 }

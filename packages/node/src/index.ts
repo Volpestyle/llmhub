@@ -1,5 +1,6 @@
 export { createHub } from "./core/hub.js";
 export { httpHandlers } from "./http/handlers.js";
+export { ModelRouter } from "./core/router.js";
 export type {
   Hub,
   HubConfig,
@@ -7,6 +8,11 @@ export type {
   GenerateOutput,
   StreamChunk,
   ModelMetadata,
+  ModelRecord,
+  ModelConstraints,
+  ModelResolutionRequest,
+  ResolvedModel,
+  EntitlementContext,
   ToolDefinition,
   ToolCall,
   Usage,

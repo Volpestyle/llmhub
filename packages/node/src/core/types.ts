@@ -32,6 +32,89 @@ export interface ModelMetadata {
   inPreview?: boolean;
 }
 
+export interface EntitlementContext {
+  provider?: Provider;
+  apiKey?: string;
+  apiKeyFingerprint?: string;
+  accountId?: string;
+  region?: string;
+  environment?: "dev" | "staging" | "prod";
+  tenantId?: string;
+  userId?: string;
+}
+
+export interface ModelModalities {
+  text: boolean;
+  vision?: boolean;
+  audioIn?: boolean;
+  audioOut?: boolean;
+  imageOut?: boolean;
+}
+
+export interface ModelFeatures {
+  tools?: boolean;
+  jsonMode?: boolean;
+  jsonSchema?: boolean;
+  streaming?: boolean;
+  batch?: boolean;
+}
+
+export interface ModelLimits {
+  contextTokens?: number;
+  maxOutputTokens?: number;
+}
+
+export interface ModelPricing {
+  currency: "USD";
+  inputPer1M?: number;
+  cachedInputPer1M?: number;
+  outputPer1M?: number;
+  extras?: Record<string, number>;
+  effectiveAsOf?: string;
+  source?: "config";
+}
+
+export type AvailabilityConfidence = "listed" | "inferred" | "learned";
+
+export interface ModelAvailability {
+  entitled: boolean;
+  lastVerifiedAt?: string;
+  confidence?: AvailabilityConfidence;
+  reason?: string;
+}
+
+export interface ModelRecord {
+  id: string;
+  provider: Provider;
+  providerModelId: string;
+  displayName?: string;
+  modalities: ModelModalities;
+  features: ModelFeatures;
+  limits?: ModelLimits;
+  tags?: string[];
+  pricing?: ModelPricing;
+  availability: ModelAvailability;
+}
+
+export interface ModelConstraints {
+  requireTools?: boolean;
+  requireJson?: boolean;
+  requireVision?: boolean;
+  maxCostUsd?: number;
+  latencyClass?: "fast" | "balanced" | "best";
+  allowPreview?: boolean;
+}
+
+export interface ModelResolutionRequest {
+  constraints?: ModelConstraints;
+  preferredModels?: string[];
+}
+
+export interface ResolvedModel {
+  primary: ModelRecord;
+  fallback?: ModelRecord[];
+}
+
 export interface TextContentPart {
   type: "text";
   text: string;
@@ -163,6 +246,7 @@ export type StreamChunk =
 export interface ListModelsParams {
   providers?: Provider[];
   refresh?: boolean;
+  entitlement?: EntitlementContext;
 }
 
 export enum ErrorKind {
@@ -192,20 +276,23 @@ export type FetchLike = (
 ) => Promise<Response>;
 
 export interface OpenAIProviderConfig {
-  apiKey: string;
+  apiKey?: string;
+  apiKeys?: string[];
   baseURL?: string;
   organization?: string;
   defaultUseResponses?: boolean;
 }
 
 export interface AnthropicProviderConfig {
-  apiKey: string;
+  apiKey?: string;
+  apiKeys?: string[];
   baseURL?: string;
   version?: string;
 }
 
 export interface XAIProviderConfig {
-  apiKey: string;
+  apiKey?: string;
+  apiKeys?: string[];
   baseURL?: string;
   /**
    * "openai" uses the OpenAI-compatible surfaces; "anthropic" routes to Messages API.
@@ -215,7 +302,8 @@ export interface XAIProviderConfig {
 }
 
 export interface GoogleProviderConfig {
-  apiKey: string;
+  apiKey?: string;
+  apiKeys?: string[];
   baseURL?: string;
 }
 
@@ -239,6 +327,15 @@ export interface HubConfig {
 
 export interface Hub {
   listModels(params?: ListModelsParams): Promise<ModelMetadata[]>;
+  listModelRecords(params?: ListModelsParams): Promise<ModelRecord[]>;
   generate(input: GenerateInput): Promise<GenerateOutput>;
+  generateWithContext(
+    entitlement: EntitlementContext | undefined,
+    input: GenerateInput,
+  ): Promise<GenerateOutput>;
   streamGenerate(input: GenerateInput): AsyncIterable<StreamChunk>;
+  streamGenerateWithContext(
+    entitlement: EntitlementContext | undefined,
+    input: GenerateInput,
+  ): AsyncIterable<StreamChunk>;
 }
