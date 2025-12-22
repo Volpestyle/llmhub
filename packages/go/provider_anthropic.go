@@ -87,23 +87,19 @@ func (a *anthropicAdapter) ListModels(ctx context.Context) ([]ModelMetadata, err
 	}
 	models := make([]ModelMetadata, 0, len(payload.Data))
 	for _, model := range payload.Data {
-		if curated, ok := lookupCurated(a.provider, model.ID); ok {
-			models = append(models, curated)
-		} else {
-			models = append(models, ModelMetadata{
-				ID:          model.ID,
-				DisplayName: model.ID,
-				Provider:    a.provider,
-				Family:      deriveFamily(model.ID),
-				Capabilities: ModelCapabilities{
-					Text:             true,
-					Vision:           true,
-					ToolUse:          true,
-					StructuredOutput: true,
-					Reasoning:        false,
-				},
-			})
-		}
+		models = append(models, ModelMetadata{
+			ID:          model.ID,
+			DisplayName: model.ID,
+			Provider:    a.provider,
+			Family:      deriveFamily(model.ID),
+			Capabilities: ModelCapabilities{
+				Text:             true,
+				Vision:           true,
+				ToolUse:          true,
+				StructuredOutput: true,
+				Reasoning:        false,
+			},
+		})
 	}
 	return models, nil
 }

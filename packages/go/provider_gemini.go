@@ -62,10 +62,6 @@ func (g *googleAdapter) ListModels(ctx context.Context) ([]ModelMetadata, error)
 	var models []ModelMetadata
 	for _, model := range payload.Models {
 		id := strings.TrimPrefix(model.Name, "models/")
-		if curated, ok := lookupCurated(ProviderGoogle, id); ok {
-			models = append(models, curated)
-			continue
-		}
 		models = append(models, ModelMetadata{
 			ID:          id,
 			DisplayName: model.DisplayName,

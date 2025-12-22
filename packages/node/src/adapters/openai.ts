@@ -12,7 +12,6 @@ import {
   Usage,
   FetchLike,
 } from "../core/types.js";
-import { lookupCuratedModel } from "../overlays/curatedModels.js";
 import { LLMHubError } from "../core/errors.js";
 import { ErrorKind } from "../core/types.js";
 import { streamSSE, parseEventData } from "../core/stream.js";
@@ -450,10 +449,6 @@ export class OpenAIAdapter implements ProviderAdapter {
   }
 
   private enrichModel(modelId: string): ModelMetadata {
-    const curated = lookupCuratedModel(this.provider, modelId);
-    if (curated) {
-      return curated;
-    }
     return {
       id: modelId,
       displayName: modelId,

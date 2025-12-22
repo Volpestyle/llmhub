@@ -156,23 +156,19 @@ func (a *openAIAdapter) ListModels(ctx context.Context) ([]ModelMetadata, error)
 	}
 	models := make([]ModelMetadata, 0, len(payload.Data))
 	for _, model := range payload.Data {
-		if curated, ok := lookupCurated(a.provider, model.ID); ok {
-			models = append(models, curated)
-		} else {
-			models = append(models, ModelMetadata{
-				ID:          model.ID,
-				DisplayName: model.ID,
-				Provider:    a.provider,
-				Family:      deriveFamily(model.ID),
-				Capabilities: ModelCapabilities{
-					Text:             true,
-					Vision:           false,
-					ToolUse:          true,
-					StructuredOutput: false,
-					Reasoning:        false,
-				},
-			})
-		}
+		models = append(models, ModelMetadata{
+			ID:          model.ID,
+			DisplayName: model.ID,
+			Provider:    a.provider,
+			Family:      deriveFamily(model.ID),
+			Capabilities: ModelCapabilities{
+				Text:             true,
+				Vision:           false,
+				ToolUse:          true,
+				StructuredOutput: false,
+				Reasoning:        false,
+			},
+		})
 	}
 	return models, nil
 }

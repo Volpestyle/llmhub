@@ -11,7 +11,6 @@ import {
   ToolDefinition,
   Usage,
 } from "../core/types.js";
-import { lookupCuratedModel } from "../overlays/curatedModels.js";
 import { LLMHubError } from "../core/errors.js";
 import { ErrorKind } from "../core/types.js";
 import { parseEventData, streamSSE } from "../core/stream.js";
@@ -262,21 +261,19 @@ export class AnthropicAdapter implements ProviderAdapter {
   }
 
   private enrichModel(modelId: string): ModelMetadata {
-    return (
-      lookupCuratedModel(this.provider, modelId) ?? {
-        id: modelId,
-        displayName: modelId,
-        provider: this.provider,
-        family: modelId.split("-").slice(0, 3).join("-"),
-        capabilities: {
-          text: true,
-          vision: false,
-          tool_use: true,
-          structured_output: true,
-          reasoning: false,
-        },
-      }
-    );
+    return {
+      id: modelId,
+      displayName: modelId,
+      provider: this.provider,
+      family: modelId.split("-").slice(0, 3).join("-"),
+      capabilities: {
+        text: true,
+        vision: false,
+        tool_use: true,
+        structured_output: true,
+        reasoning: false,
+      },
+    };
   }
 
   private async fetchJSON<T>(

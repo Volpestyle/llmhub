@@ -12,7 +12,6 @@ import {
   ToolDefinition,
   Usage,
 } from "../core/types.js";
-import { lookupCuratedModel } from "../overlays/curatedModels.js";
 import { LLMHubError } from "../core/errors.js";
 import { ErrorKind } from "../core/types.js";
 import { parseEventData, streamSSE } from "../core/stream.js";
@@ -88,22 +87,20 @@ export class GoogleAdapter implements ProviderAdapter {
     });
     return data.models.map((model) => {
       const id = model.name.replace("models/", "");
-      return (
-        lookupCuratedModel(this.provider, id) ?? {
-          id,
-          displayName: model.displayName ?? id,
-          provider: this.provider,
-          family: id.split("-").slice(0, 3).join("-"),
-          capabilities: {
-            text: true,
-            vision: true,
-            tool_use: true,
-            structured_output: true,
-            reasoning: false,
-          },
-          contextWindow: model.inputTokenLimit,
-        }
-      );
+      return {
+        id,
+        displayName: model.displayName ?? id,
+        provider: this.provider,
+        family: id.split("-").slice(0, 3).join("-"),
+        capabilities: {
+          text: true,
+          vision: true,
+          tool_use: true,
+          structured_output: true,
+          reasoning: false,
+        },
+        contextWindow: model.inputTokenLimit,
+      };
     });
   }
 

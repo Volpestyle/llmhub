@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
 
 from ..http import request_json, request_stream
-from ..overlays import lookup_curated
 from ..sse import iter_sse_events
 from ..types import (
     GenerateInput,
@@ -47,10 +46,6 @@ class OpenAIAdapter:
         for model in payload.get("data", []):
             model_id = model.get("id")
             if not model_id:
-                continue
-            curated = lookup_curated(self.provider, model_id)
-            if curated:
-                models.append(curated)
                 continue
             models.append(
                 ModelMetadata(
