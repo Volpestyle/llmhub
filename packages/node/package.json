@@ -19,11 +19,14 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "test:watch": "vitest watch"
+    "test:watch": "vitest watch",
+    "refresh:models": "tsx scripts/refreshCuratedModels.ts"
   },
   "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "dotenv": "^16.4.5",
+    "tsx": "^4.16.2",
     "tsup": "^8.0.1",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"

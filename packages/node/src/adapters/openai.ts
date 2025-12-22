@@ -89,6 +89,23 @@ interface ResponsesOutput {
     output_tokens?: number;
     total_tokens?: number;
   };
+  required_action?: ResponsesRequiredAction;
+}
+
+interface ResponsesFunctionToolCall {
+  id: string;
+  type?: string;
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+interface ResponsesRequiredAction {
+  type: string;
+  submit_tool_outputs?: {
+    tool_calls: ResponsesFunctionToolCall[];
+  };
 }
 
 interface ResponsesSSEPayload {
@@ -105,6 +122,13 @@ interface ResponsesSSEPayload {
   output_index?: number;
   content_index?: number;
   tool_call_id?: string;
+  required_action?: ResponsesRequiredAction;
+  error?: {
+    message?: string;
+    code?: string;
+    type?: string;
+    param?: string;
+  };
 }
 
 interface ToolState {
@@ -187,6 +211,7 @@ export class OpenAIAdapter implements ProviderAdapter {
       }
       switch (event.event) {
         case "response.output_text.delta":
+        case "response.refusal.delta":
           if (payload.delta?.text) {
             yield { type: "delta", textDelta: payload.delta.text };
           }
@@ -210,19 +235,50 @@ export class OpenAIAdapter implements ProviderAdapter {
             };
           }
           break;
+        case "response.required_action": {
+          const action =
+            payload.required_action ?? payload.response?.required_action;
+          for (const chunk of this.mapRequiredAction(toolStates, action)) {
+            yield chunk;
+          }
+          break;
+        }
         case "response.completed":
           yield {
             type: "message_end",
             usage: mapResponsesUsage(payload.response?.usage),
-            finishReason: payload.response?.status ?? "stop",
+            finishReason: payload.response?.status ?? "completed",
           };
           break;
         case "response.error":
-          throw new LLMHubError({
-            kind: ErrorKind.ProviderUnavailable,
-            message: "OpenAI streaming error",
-            provider: this.provider,
-          });
+          yield {
+            type: "error",
+            error: {
+              kind: "upstream_error",
+              message:
+                payload.error?.message ?? "OpenAI streaming error",
+              upstreamCode: payload.error?.code,
+            },
+          };
+          return;
+        case "response.failed":
+        case "response.canceled":
+          yield {
+            type: "message_end",
+            finishReason:
+              payload.response?.status ??
+              event.event.replace("response.", ""),
+          };
+          return;
+        case "response.output_audio.delta":
+          yield {
+            type: "error",
+            error: {
+              kind: "unsupported",
+              message: "Audio streaming is not supported by this adapter",
+            },
+          };
+          return;
         default:
           break;
       }
@@ -349,18 +405,40 @@ export class OpenAIAdapter implements ProviderAdapter {
   private normalizeResponsesOutput(data: ResponsesOutput): GenerateOutput {
     const toolCalls: ToolCall[] = [];
     const textParts: string[] = [];
+    const appendToolCall = (call: {
+      id?: string;
+      name?: string;
+      arguments?: string;
+    }) => {
+      if (!call) return;
+      const id = call.id ?? `tool_${toolCalls.length}`;
+      toolCalls.push({
+        id,
+        name: call.name ?? "",
+        argumentsJson: call.arguments ?? "",
+      });
+    };
     for (const output of data.output ?? []) {
       for (const content of output.content ?? []) {
         if (content.type === "output_text" && content.text) {
           textParts.push(content.text);
         } else if (content.type === "tool_call") {
-          toolCalls.push({
-            id: content.id ?? `tool_${toolCalls.length}`,
-            name: content.name ?? "",
-            argumentsJson: JSON.stringify(content.arguments ?? {}),
+          appendToolCall({
+            id: content.id,
+            name: content.name,
+            arguments: stringifyArguments(content.arguments),
           });
         }
       }
+    }
+    const requiredToolCalls =
+      data.required_action?.submit_tool_outputs?.tool_calls ?? [];
+    for (const call of requiredToolCalls) {
+      appendToolCall({
+        id: call.id,
+        name: call.function?.name,
+        arguments: call.function?.arguments ?? "",
+      });
     }
     return {
       text: textParts.join(""),
@@ -400,7 +478,7 @@ export class OpenAIAdapter implements ProviderAdapter {
 
   private async fetchJSON<T>(
     path: string,
-    init: RequestInit & { body?: any },
+    init: RequestInit & { body?: Record<string, unknown> },
   ): Promise<T> {
     const response = await this.fetchRaw(path, {
       ...init,
@@ -473,6 +551,50 @@ export class OpenAIAdapter implements ProviderAdapter {
     }
     toolStates.set(id, state);
   }
+
+  private mapRequiredAction(
+    toolStates: Map<string, ToolState>,
+    action?: ResponsesRequiredAction,
+  ): StreamChunk[] {
+    const calls =
+      action?.submit_tool_outputs?.tool_calls ?? [];
+    if (!calls.length) {
+      return [];
+    }
+    const chunks: StreamChunk[] = [];
+    for (const call of calls) {
+      const id = call.id ?? `tool_${toolStates.size}`;
+      const state = {
+        id,
+        name: call.function?.name,
+        arguments: call.function?.arguments ?? "",
+      };
+      toolStates.set(id, state);
+      chunks.push({
+        type: "tool_call",
+        call: {
+          id: state.id,
+          name: state.name ?? "",
+          argumentsJson: state.arguments,
+        },
+      });
+    }
+    return chunks;
+  }
+}
+
+function stringifyArguments(value: unknown): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "";
+  }
 }
 
 function mapMessagesToChat(messages: GenerateInput["messages"]) {
@@ -513,9 +635,8 @@ function mapMessagesToChat(messages: GenerateInput["messages"]) {
 }
 
 function mapMessagesToResponses(messages: GenerateInput["messages"]) {
-  return messages.map((message) => ({
-    role: message.role,
-    content: message.content.map((part) => {
+  return messages.map((message) => {
+    const content = message.content.map((part) => {
       if (part.type === "text") {
         return { type: "input_text", text: part.text };
       }
@@ -530,8 +651,19 @@ function mapMessagesToResponses(messages: GenerateInput["messages"]) {
         payload.image_base64 = part.image.base64;
       }
       return payload;
-    }),
-  }));
+    });
+    const entry: Record<string, unknown> = {
+      role: message.role,
+      content,
+    };
+    if (message.toolCallId) {
+      entry.tool_call_id = message.toolCallId;
+    }
+    if (message.name) {
+      entry.name = message.name;
+    }
+    return entry;
+  });
 }
 
 function mapTools(tools?: ToolDefinition[]) {

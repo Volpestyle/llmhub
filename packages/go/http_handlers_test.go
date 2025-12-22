@@ -14,9 +14,11 @@ type mockHub struct {
 	modelsResp   []ModelMetadata
 	generateResp GenerateOutput
 	streamChunks []StreamChunk
+	lastListOpts *ListModelsOptions
 }
 
 func (m *mockHub) ListModels(ctx context.Context, opts *ListModelsOptions) ([]ModelMetadata, error) {
+	m.lastListOpts = opts
 	return m.modelsResp, nil
 }
 
@@ -49,6 +51,16 @@ func TestModelsHandlerReturnsJSON(t *testing.T) {
 	readBody(t, rec.Result().Body, &payload)
 	if len(payload) != 1 || payload[0].ID != "test" {
 		t.Fatalf("unexpected payload: %+v", payload)
+	}
+}
+
+func TestModelsHandlerParsesRefreshQuery(t *testing.T) {
+	hub := &mockHub{}
+	req := httptest.NewRequest(http.MethodGet, "/provider-models?refresh=true", nil)
+	rec := httptest.NewRecorder()
+	ModelsHandler(hub, nil)(rec, req)
+	if hub.lastListOpts == nil || !hub.lastListOpts.Refresh {
+		t.Fatalf("expected refresh flag to be forwarded: %+v", hub.lastListOpts)
 	}
 }
 

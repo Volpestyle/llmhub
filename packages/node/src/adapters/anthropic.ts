@@ -6,7 +6,6 @@ import {
   GenerateOutput,
   ModelMetadata,
   Provider,
-  ResponseFormat,
   StreamChunk,
   ToolCall,
   ToolDefinition,
@@ -104,24 +103,27 @@ export class AnthropicAdapter implements ProviderAdapter {
         method: "POST",
         body: payload,
         signal: input.signal,
+        useStructuredOutputsBeta: this.usesStructuredOutput(input),
       },
     );
-    return this.normalizeResponse(response, input.responseFormat);
+    return this.normalizeResponse(response);
   }
 
   streamGenerate(input: GenerateInput): AsyncIterable<StreamChunk> {
     const payload = this.buildPayload({ ...input, stream: true });
-    return this.streamMessages(payload, input.signal);
+    return this.streamMessages(payload, input.signal, this.usesStructuredOutput(input));
   }
 
   private async *streamMessages(
     payload: unknown,
     signal?: AbortSignal,
+    useStructuredOutputsBeta?: boolean,
   ): AsyncIterable<StreamChunk> {
     const response = await this.fetchRaw("/v1/messages", {
       method: "POST",
       body: JSON.stringify(payload),
       signal,
+      useStructuredOutputsBeta,
     });
     const toolStates = new Map<
       number,
@@ -209,12 +211,8 @@ export class AnthropicAdapter implements ProviderAdapter {
 
   private buildPayload(input: GenerateInput & { stream?: boolean }) {
     const { systemPrompt, messages } = splitAnthropicMessages(input.messages);
-    const toolConfig = buildAnthropicTools(
-      input.tools,
-      input.toolChoice,
-      input.responseFormat,
-    );
-    return {
+    const toolConfig = buildAnthropicTools(input.tools, input.toolChoice);
+    const payload: Record<string, unknown> = {
       model: input.model,
       system: systemPrompt ?? undefined,
       messages,
@@ -226,12 +224,20 @@ export class AnthropicAdapter implements ProviderAdapter {
       tool_choice: toolConfig.toolChoice,
       stream: input.stream ?? false,
     };
+    if (input.responseFormat?.type === "json_schema") {
+      payload.output_format = {
+        type: "json_schema",
+        schema: input.responseFormat.jsonSchema.schema,
+      };
+    }
+    return payload;
   }
 
-  private normalizeResponse(
-    response: AnthropicMessageResponse,
-    responseFormat?: ResponseFormat,
-  ): GenerateOutput {
+  private usesStructuredOutput(input: GenerateInput): boolean {
+    return input.responseFormat?.type === "json_schema";
+  }
+
+  private normalizeResponse(response: AnthropicMessageResponse): GenerateOutput {
     const text = response.content
       .filter((block): block is { type: "text"; text: string } => block.type === "text")
       .map((block) => block.text)
@@ -275,19 +281,20 @@ export class AnthropicAdapter implements ProviderAdapter {
 
   private async fetchJSON<T>(
     path: string,
-    init: RequestInit & { body?: any },
+    init: RequestInit & { body?: unknown; useStructuredOutputsBeta?: boolean },
   ): Promise<T> {
     const response = await this.fetchRaw(path, {
       ...init,
       body:
         init.body && typeof init.body !== "string"
           ? JSON.stringify(init.body)
-          : init.body,
+          : (init.body as string | undefined),
+      useStructuredOutputsBeta: init.useStructuredOutputsBeta,
     });
     return (await response.json()) as T;
   }
 
-  private async fetchRaw(path: string, init: RequestInit): Promise<Response> {
+  private async fetchRaw(path: string, init: RequestInit & { useStructuredOutputsBeta?: boolean }): Promise<Response> {
     const fetchImpl = this.fetchImpl ?? globalThis.fetch;
     if (!fetchImpl) {
       throw new LLMHubError({
@@ -296,12 +303,18 @@ export class AnthropicAdapter implements ProviderAdapter {
         provider: this.provider,
       });
     }
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      "x-api-key": this.apiKey,
+      "anthropic-version": this.version,
+    };
+    if (init.useStructuredOutputsBeta) {
+      headers["anthropic-beta"] = "structured-outputs-2025-11-13";
+    }
     const response = await fetchImpl(`${this.baseURL}${path}`, {
       ...init,
       headers: {
-        "content-type": "application/json",
-        "x-api-key": this.apiKey,
-        "anthropic-version": this.version,
+        ...headers,
         ...(init.headers ?? {}),
       },
     });
@@ -386,20 +399,8 @@ function splitAnthropicMessages(messages: GenerateInput["messages"]) {
 function buildAnthropicTools(
   tools?: ToolDefinition[],
   choice?: GenerateInput["toolChoice"],
-  responseFormat?: ResponseFormat,
 ) {
-  let toolList = tools ?? [];
-  let toolChoice = choice;
-  if (responseFormat?.type === "json_schema") {
-    const schemaTool: ToolDefinition = {
-      name: responseFormat.jsonSchema.name,
-      description:
-        "Structured output enforced by llmhub schema adapter",
-      parameters: responseFormat.jsonSchema.schema,
-    };
-    toolList = [...toolList, schemaTool];
-    toolChoice = { type: "tool", name: schemaTool.name };
-  }
+  const toolList = tools ?? [];
   return {
     tools: toolList.length
       ? toolList.map((tool) => ({
@@ -408,7 +409,7 @@ function buildAnthropicTools(
           input_schema: tool.parameters,
         }))
       : undefined,
-    toolChoice: choiceToAnthropic(toolChoice),
+    toolChoice: choiceToAnthropic(choice),
   };
 }
 

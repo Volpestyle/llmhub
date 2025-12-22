@@ -42,6 +42,7 @@ Notes: where providers surface multiple overlapping APIs, this doc recommends on
 
 - Cache each provider’s list with a default 6h TTL and background refresh.
 - For Gemini, store supportedGenerationMethods to reliably filter text/vision models. For OpenAI/Anthropic/xAI the list responses are more generic; apply a curated allowlist overlay (JSON in repo) to mark capabilities and pricing, then reconcile with live lists. ￼
+- To keep the overlay current without hammering `/models`, run `npm run refresh:models` from `packages/node` (export the relevant `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `XAI_API_KEY`, `GOOGLE_API_KEY` or place them in `packages/node/.env`/`.env.local`). The script hits each configured provider once with `refresh: true` and rewrites `models/curated_models.json`, so both the Go and Node runtimes serve the same snapshot by default; append `?refresh=true` to `/provider-models` when you explicitly need a live refetch. ￼
 
 ---
 

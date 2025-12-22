@@ -22,6 +22,23 @@ type openAIModelList struct {
 	} `json:"data"`
 }
 
+type openAIFunctionToolCall struct {
+	ID string `json:"id"`
+	// Type is expected to be "function" but we keep it for forward compatibility.
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
+}
+
+type openAIResponsesRequiredAction struct {
+	Type              string `json:"type"`
+	SubmitToolOutputs *struct {
+		ToolCalls []openAIFunctionToolCall `json:"tool_calls"`
+	} `json:"submit_tool_outputs"`
+}
+
 type openAIChatResponse struct {
 	Choices []struct {
 		FinishReason string `json:"finish_reason"`
@@ -81,6 +98,7 @@ type openAIResponsesResponse struct {
 		OutputTokens int `json:"output_tokens"`
 		TotalTokens  int `json:"total_tokens"`
 	} `json:"usage"`
+	RequiredAction *openAIResponsesRequiredAction `json:"required_action"`
 }
 
 type openAIResponsesStreamPayload struct {
@@ -89,15 +107,22 @@ type openAIResponsesStreamPayload struct {
 		Arguments string `json:"arguments"`
 		Name      string `json:"name"`
 	} `json:"delta"`
-	ToolCallID string `json:"tool_call_id"`
-	Response   struct {
-		Status string `json:"status"`
-		Usage  *struct {
-			InputTokens  int `json:"input_tokens"`
-			OutputTokens int `json:"output_tokens"`
-			TotalTokens  int `json:"total_tokens"`
-		} `json:"usage"`
-	} `json:"response"`
+	ToolCallID     string                         `json:"tool_call_id"`
+	Response       *openAIResponsesResponse       `json:"response"`
+	RequiredAction *openAIResponsesRequiredAction `json:"required_action"`
+	Error          *struct {
+		Message string `json:"message"`
+		Code    string `json:"code"`
+		Type    string `json:"type"`
+		Param   string `json:"param"`
+	} `json:"error"`
+}
+
+func (p *openAIResponsesStreamPayload) ErrorCode() string {
+	if p == nil || p.Error == nil {
+		return ""
+	}
+	return p.Error.Code
 }
 
 type toolState struct {
@@ -345,7 +370,7 @@ func (a *openAIAdapter) streamResponses(ctx context.Context, resp *http.Response
 				continue
 			}
 			switch event.Event {
-			case "response.output_text.delta":
+			case "response.output_text.delta", "response.refusal.delta":
 				if payload.Delta.Text != "" {
 					ch <- StreamChunk{Type: StreamChunkDelta, TextDelta: payload.Delta.Text}
 				}
@@ -373,11 +398,77 @@ func (a *openAIAdapter) streamResponses(ctx context.Context, resp *http.Response
 					},
 					Delta: payload.Delta.Arguments,
 				}
+			case "response.required_action":
+				action := payload.RequiredAction
+				if action == nil && payload.Response != nil {
+					action = payload.Response.RequiredAction
+				}
+				if action != nil && action.SubmitToolOutputs != nil {
+					for _, call := range action.SubmitToolOutputs.ToolCalls {
+						state := toolStates[call.ID]
+						if state == nil {
+							state = &toolState{ID: call.ID, Name: call.Function.Name}
+							toolStates[call.ID] = state
+						}
+						if call.Function.Name != "" {
+							state.Name = call.Function.Name
+						}
+						if call.Function.Arguments != "" {
+							state.ArgumentsJSON = call.Function.Arguments
+						}
+						ch <- StreamChunk{
+							Type: StreamChunkToolCall,
+							Call: &ToolCall{
+								ID:            state.ID,
+								Name:          state.Name,
+								ArgumentsJSON: state.ArgumentsJSON,
+							},
+						}
+					}
+				}
 			case "response.completed":
+				var usage *Usage
+				var status string
+				if payload.Response != nil {
+					usage = mapResponsesUsage(payload.Response.Usage)
+					status = payload.Response.Status
+				}
 				ch <- StreamChunk{
 					Type:         StreamChunkMessageEnd,
-					FinishReason: payload.Response.Status,
-					Usage:        mapResponsesUsage(payload.Response.Usage),
+					FinishReason: status,
+					Usage:        usage,
+				}
+			case "response.failed", "response.canceled":
+				var status string
+				if payload.Response != nil && payload.Response.Status != "" {
+					status = payload.Response.Status
+				} else {
+					status = strings.TrimPrefix(event.Event, "response.")
+				}
+				ch <- StreamChunk{
+					Type:         StreamChunkMessageEnd,
+					FinishReason: status,
+				}
+			case "response.error":
+				message := "openai streaming error"
+				if payload.Error != nil && payload.Error.Message != "" {
+					message = payload.Error.Message
+				}
+				ch <- StreamChunk{
+					Type: StreamChunkError,
+					Error: &ChunkError{
+						Kind:         "upstream_error",
+						Message:      message,
+						UpstreamCode: payload.ErrorCode(),
+					},
+				}
+			case "response.output_audio.delta":
+				ch <- StreamChunk{
+					Type: StreamChunkError,
+					Error: &ChunkError{
+						Kind:    "unsupported",
+						Message: "audio streaming is not supported by this adapter",
+					},
 				}
 			}
 		}
@@ -419,19 +510,31 @@ func convertOpenAIChatResponse(payload openAIChatResponse) GenerateOutput {
 func convertResponsesOutput(payload openAIResponsesResponse) GenerateOutput {
 	text := ""
 	var calls []ToolCall
+	appendToolCall := func(id, name, args string) {
+		if id == "" {
+			id = fmt.Sprintf("tool_%d", len(calls))
+		}
+		calls = append(calls, ToolCall{
+			ID:            id,
+			Name:          name,
+			ArgumentsJSON: args,
+		})
+	}
 	for _, output := range payload.Output {
 		for _, content := range output.Content {
 			switch content.Type {
 			case "output_text":
 				text += content.Text
 			case "tool_call":
-				args, _ := json.Marshal(content.Arguments)
-				calls = append(calls, ToolCall{
-					ID:            content.ID,
-					Name:          content.Name,
-					ArgumentsJSON: string(args),
-				})
+				args := stringifyArguments(content.Arguments)
+				appendToolCall(content.ID, content.Name, args)
 			}
+		}
+	}
+	if payload.RequiredAction != nil && payload.RequiredAction.SubmitToolOutputs != nil {
+		for _, call := range payload.RequiredAction.SubmitToolOutputs.ToolCalls {
+			args := call.Function.Arguments
+			appendToolCall(call.ID, call.Function.Name, args)
 		}
 	}
 	return GenerateOutput{
@@ -440,6 +543,23 @@ func convertResponsesOutput(payload openAIResponsesResponse) GenerateOutput {
 		Usage:        mapResponsesUsage(payload.Usage),
 		FinishReason: payload.Status,
 		Raw:          payload,
+	}
+}
+
+func stringifyArguments(value interface{}) string {
+	switch v := value.(type) {
+	case nil:
+		return ""
+	case string:
+		return v
+	case json.RawMessage:
+		return string(v)
+	default:
+		data, err := json.Marshal(v)
+		if err != nil {
+			return ""
+		}
+		return string(data)
 	}
 }
 
@@ -534,10 +654,17 @@ func mapMessagesToResponses(messages []Message) []map[string]interface{} {
 				content = append(content, entry)
 			}
 		}
-		result = append(result, map[string]interface{}{
+		entry := map[string]interface{}{
 			"role":    message.Role,
 			"content": content,
-		})
+		}
+		if message.ToolCallID != "" {
+			entry["tool_call_id"] = message.ToolCallID
+		}
+		if message.Name != "" {
+			entry["name"] = message.Name
+		}
+		result = append(result, entry)
 	}
 	return result
 }

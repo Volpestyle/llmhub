@@ -133,6 +133,7 @@ Adapters map our domain types to provider payloads and back, including:
 - Cache: in-memory + pluggable external (Redis) with TTL (default 6h), background refresh, per-provider circuit breaker.
 - Fallback: ship a minimal curated static list when upstream fails.
 - Capabilities enrichment: annotate from known feature matrix and provider docs.
+- Refresh workflow: provide a repo script (`npm run refresh:models` in `packages/node`) that, with provider API keys set, fetches live lists once (`refresh: true`) and rewrites the shared `curated_models.json` snapshot so day-to-day traffic can serve the static overlay and only hit upstream when callers explicitly request a refresh flag.
 
 ---
 

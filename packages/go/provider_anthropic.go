@@ -80,7 +80,7 @@ func (a *anthropicAdapter) ListModels(ctx context.Context) ([]ModelMetadata, err
 	if err != nil {
 		return nil, err
 	}
-	a.applyHeaders(req)
+	a.applyHeaders(req, false)
 	var payload anthropicModelList
 	if err := doJSON(ctx, a.client, req, a.provider, &payload); err != nil {
 		return nil, err
@@ -110,7 +110,8 @@ func (a *anthropicAdapter) ListModels(ctx context.Context) ([]ModelMetadata, err
 
 func (a *anthropicAdapter) Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error) {
 	payload := a.buildPayload(in, false)
-	req, err := a.jsonRequest(ctx, payload)
+	usesStructuredOutput := in.ResponseFormat != nil && in.ResponseFormat.Type == "json_schema"
+	req, err := a.jsonRequest(ctx, payload, usesStructuredOutput)
 	if err != nil {
 		return GenerateOutput{}, err
 	}
@@ -123,7 +124,8 @@ func (a *anthropicAdapter) Generate(ctx context.Context, in GenerateInput) (Gene
 
 func (a *anthropicAdapter) Stream(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
 	payload := a.buildPayload(in, true)
-	req, err := a.jsonRequest(ctx, payload)
+	usesStructuredOutput := in.ResponseFormat != nil && in.ResponseFormat.Type == "json_schema"
+	req, err := a.jsonRequest(ctx, payload, usesStructuredOutput)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +202,7 @@ func (a *anthropicAdapter) Stream(ctx context.Context, in GenerateInput) (<-chan
 
 func (a *anthropicAdapter) buildPayload(in GenerateInput, stream bool) map[string]interface{} {
 	system, messages := splitAnthropicMessages(in.Messages)
-	return map[string]interface{}{
+	payload := map[string]interface{}{
 		"model":       in.Model,
 		"system":      system,
 		"messages":    messages,
@@ -208,13 +210,20 @@ func (a *anthropicAdapter) buildPayload(in GenerateInput, stream bool) map[strin
 		"temperature": in.Temperature,
 		"top_p":       in.TopP,
 		"metadata":    in.Metadata,
-		"tools":       convertAnthropicTools(in.Tools, in.ResponseFormat),
-		"tool_choice": convertAnthropicToolChoice(in.ToolChoice, in.ResponseFormat),
+		"tools":       convertAnthropicTools(in.Tools),
+		"tool_choice": convertAnthropicToolChoice(in.ToolChoice),
 		"stream":      stream,
 	}
+	if in.ResponseFormat != nil && in.ResponseFormat.Type == "json_schema" && in.ResponseFormat.JsonSchema != nil {
+		payload["output_format"] = map[string]interface{}{
+			"type":   "json_schema",
+			"schema": in.ResponseFormat.JsonSchema.Schema,
+		}
+	}
+	return payload
 }
 
-func (a *anthropicAdapter) jsonRequest(ctx context.Context, payload map[string]interface{}) (*http.Request, error) {
+func (a *anthropicAdapter) jsonRequest(ctx context.Context, payload map[string]interface{}, useStructuredOutputsBeta bool) (*http.Request, error) {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -223,14 +232,17 @@ func (a *anthropicAdapter) jsonRequest(ctx context.Context, payload map[string]i
 	if err != nil {
 		return nil, err
 	}
-	a.applyHeaders(req)
+	a.applyHeaders(req, useStructuredOutputsBeta)
 	return req, nil
 }
 
-func (a *anthropicAdapter) applyHeaders(req *http.Request) {
+func (a *anthropicAdapter) applyHeaders(req *http.Request, useStructuredOutputsBeta bool) {
 	req.Header.Set("content-type", "application/json")
 	req.Header.Set("x-api-key", a.config.APIKey)
 	req.Header.Set("anthropic-version", a.version)
+	if useStructuredOutputsBeta {
+		req.Header.Set("anthropic-beta", "structured-outputs-2025-11-13")
+	}
 }
 
 func convertAnthropicResponse(resp anthropicMessageResponse) GenerateOutput {
@@ -320,8 +332,8 @@ func splitAnthropicMessages(messages []Message) (string, []map[string]interface{
 	return system, result
 }
 
-func convertAnthropicTools(tools []ToolDefinition, format *ResponseFormat) []map[string]interface{} {
-	if len(tools) == 0 && format == nil {
+func convertAnthropicTools(tools []ToolDefinition) []map[string]interface{} {
+	if len(tools) == 0 {
 		return nil
 	}
 	list := make([]map[string]interface{}, 0, len(tools))
@@ -332,23 +344,10 @@ func convertAnthropicTools(tools []ToolDefinition, format *ResponseFormat) []map
 			"input_schema": tool.Parameters,
 		})
 	}
-	if format != nil && format.Type == "json_schema" && format.JsonSchema != nil {
-		list = append(list, map[string]interface{}{
-			"name":         format.JsonSchema.Name,
-			"description":  "Structured schema output",
-			"input_schema": format.JsonSchema.Schema,
-		})
-	}
 	return list
 }
 
-func convertAnthropicToolChoice(choice *ToolChoice, format *ResponseFormat) interface{} {
-	if format != nil && format.Type == "json_schema" && format.JsonSchema != nil {
-		return map[string]string{
-			"type": "tool",
-			"name": format.JsonSchema.Name,
-		}
-	}
+func convertAnthropicToolChoice(choice *ToolChoice) interface{} {
 	if choice == nil {
 		return nil
 	}

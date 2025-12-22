@@ -5,8 +5,8 @@ import { ErrorKind } from "../core/types.js";
 
 export interface RequestLike {
   method?: string;
-  query?: Record<string, any>;
-  body?: any;
+  query?: Record<string, string | string[] | undefined>;
+  body?: GenerateInput | string | null;
   headers?: Record<string, string>;
   get?(name: string): string | undefined;
 }
@@ -73,17 +73,56 @@ export function httpHandlers(hub: Hub) {
 }
 
 function buildListModelsParams(req: RequestLike): ListModelsParams | undefined {
-  const raw = req.query?.providers;
+  const params: ListModelsParams = {};
+  const providers = parseProviders(req.query?.providers);
+  if (providers) {
+    params.providers = providers;
+  }
+  if (shouldRefresh(req.query?.refresh)) {
+    params.refresh = true;
+  }
+  return Object.keys(params).length ? params : undefined;
+}
+
+function parseProviders(
+  input: unknown,
+): Provider[] | undefined {
+  const raw = normalizeQueryValue(input);
   if (!raw) {
     return undefined;
   }
-  const providers = String(raw)
+  const providers = raw
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean)
     .map((value) => toProvider(value))
     .filter((provider): provider is Provider => Boolean(provider));
-  return providers.length ? { providers } : undefined;
+  return providers.length ? providers : undefined;
+}
+
+function shouldRefresh(input: unknown): boolean {
+  const raw = normalizeQueryValue(input);
+  if (raw === undefined) {
+    return false;
+  }
+  const normalized = raw.toLowerCase();
+  return (
+    normalized === "" ||
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on"
+  );
+}
+
+function normalizeQueryValue(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return value.length ? String(value[0]) : undefined;
+  }
+  return String(value);
 }
 
 function toProvider(value: string): Provider | undefined {
@@ -101,10 +140,11 @@ function toProvider(value: string): Provider | undefined {
   }
 }
 
-function normalizeGenerateInput(payload: any): GenerateInput {
-  if (typeof payload === "string") {
+function normalizeGenerateInput(payload: GenerateInput | string | null): GenerateInput {
+  let parsed: GenerateInput | string | null | Record<string, unknown> = payload;
+  if (typeof parsed === "string") {
     try {
-      payload = JSON.parse(payload);
+      parsed = JSON.parse(parsed);
     } catch {
       throw new LLMHubError({
         kind: ErrorKind.Validation,
@@ -112,13 +152,32 @@ function normalizeGenerateInput(payload: any): GenerateInput {
       });
     }
   }
-  if (!payload || typeof payload !== "object") {
+  if (!parsed || typeof parsed !== "object") {
     throw new LLMHubError({
       kind: ErrorKind.Validation,
       message: "Request body must be a GenerateInput object",
     });
   }
-  return payload as GenerateInput;
+  const input = parsed as Record<string, unknown>;
+  if (typeof input.provider !== "string") {
+    throw new LLMHubError({
+      kind: ErrorKind.Validation,
+      message: "provider is required and must be a string",
+    });
+  }
+  if (typeof input.model !== "string") {
+    throw new LLMHubError({
+      kind: ErrorKind.Validation,
+      message: "model is required and must be a string",
+    });
+  }
+  if (!Array.isArray(input.messages)) {
+    throw new LLMHubError({
+      kind: ErrorKind.Validation,
+      message: "messages is required and must be an array",
+    });
+  }
+  return input as unknown as GenerateInput;
 }
 
 function parseQueryPayload(req: RequestLike): unknown {

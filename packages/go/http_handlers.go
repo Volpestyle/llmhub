@@ -22,10 +22,15 @@ func ModelsHandler(h HubAPI, opts *ModelsHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
-		providers := parseProviders(r.URL.Query().Get("providers"))
+		query := r.URL.Query()
+		providers := parseProviders(query.Get("providers"))
+		refresh := shouldRefresh(query["refresh"])
+		if opts != nil && opts.Refresh {
+			refresh = true
+		}
 		models, err := h.ListModels(ctx, &ListModelsOptions{
 			Providers: providers,
-			Refresh:   opts != nil && opts.Refresh,
+			Refresh:   refresh,
 		})
 		if err != nil {
 			writeError(w, err)
@@ -80,6 +85,9 @@ func GenerateSSEHandler(h HubAPI) http.HandlerFunc {
 			w.Write([]byte("\n"))
 			flusher.Flush()
 		}
+		w.Write([]byte("event: done\n"))
+		w.Write([]byte("data: {\"ok\":true}\n\n"))
+		flusher.Flush()
 	}
 }
 
@@ -104,14 +112,39 @@ func parseProviders(value string) []Provider {
 	return providers
 }
 
+func shouldRefresh(values []string) bool {
+	if len(values) == 0 {
+		return false
+	}
+	v := strings.ToLower(values[0])
+	return v == "" || v == "1" || v == "true" || v == "yes" || v == "on"
+}
+
 func writeJSON(w http.ResponseWriter, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(payload)
 }
 
+type errorResponse struct {
+	Error errorDetail `json:"error"`
+}
+
+type errorDetail struct {
+	Kind    string `json:"kind"`
+	Message string `json:"message"`
+}
+
 func writeError(w http.ResponseWriter, err error) {
+	status := http.StatusInternalServerError
+	resp := errorResponse{
+		Error: errorDetail{
+			Kind:    string(ErrorUnknown),
+			Message: err.Error(),
+		},
+	}
 	if hubErr, ok := err.(*HubError); ok {
-		status := http.StatusInternalServerError
+		resp.Error.Kind = string(hubErr.Kind)
+		resp.Error.Message = hubErr.Message
 		switch hubErr.Kind {
 		case ErrorValidation:
 			status = http.StatusBadRequest
@@ -122,8 +155,8 @@ func writeError(w http.ResponseWriter, err error) {
 		case ErrorProviderUnavailable:
 			status = http.StatusServiceUnavailable
 		}
-		http.Error(w, hubErr.Message, status)
-		return
 	}
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(resp)
 }

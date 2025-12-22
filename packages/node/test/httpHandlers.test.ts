@@ -47,6 +47,15 @@ describe("http handlers", () => {
     expect(res.jsonPayload).toEqual([{ id: "x", provider: Provider.OpenAI }]);
   });
 
+  it("passes refresh flag from query params", async () => {
+    const listModels = vi.fn().mockResolvedValue([]);
+    const hub = createHubMock({ listModels });
+    const handlers = httpHandlers(hub);
+    const res = createMockResponse();
+    await handlers.models()({ query: { refresh: "true" } }, res);
+    expect(listModels).toHaveBeenCalledWith({ refresh: true });
+  });
+
   it("invokes generate handler", async () => {
     const hub = createHubMock({
       generate: vi.fn().mockResolvedValue({ text: "ok" }),
@@ -85,8 +94,11 @@ describe("http handlers", () => {
 function createHubMock(overrides: Partial<Hub>): Hub {
   return {
     listModels: vi.fn().mockResolvedValue([]),
+    listModelRecords: vi.fn().mockResolvedValue([]),
     generate: vi.fn().mockResolvedValue({}),
+    generateWithContext: vi.fn().mockResolvedValue({}),
     streamGenerate: vi.fn(),
+    streamGenerateWithContext: vi.fn(),
     ...overrides,
   };
 }

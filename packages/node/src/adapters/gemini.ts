@@ -227,7 +227,7 @@ export class GoogleAdapter implements ProviderAdapter {
 
   private async fetchJSON<T>(
     path: string,
-    init: RequestInit & { body?: any },
+    init: RequestInit & { body?: Record<string, unknown> },
   ): Promise<T> {
     const response = await this.fetchRaw(path, {
       ...init,
