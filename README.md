@@ -66,6 +66,32 @@ Build with `go build ./...` from the repo root.
 - Node adapters expose `hub.streamGenerate(input)` returning an `AsyncIterable<StreamChunk>` normalized across providers.
 - Go adapters return `<-chan StreamChunk` with the same shape; HTTP helpers emit Server-Sent Events with `event: chunk` entries.
 
+## Local LLMs (Ollama, LM Studio, llama.cpp)
+
+The package works with any OpenAI-compatible local LLM server by setting a custom `baseURL`:
+
+```ts
+const hub = createHub({
+  providers: {
+    [Provider.OpenAI]: {
+      apiKey: "local",  // Local servers ignore this, but a value is required
+      baseURL: "http://localhost:11434/v1",  // Ollama
+      // baseURL: "http://localhost:1234/v1",  // LM Studio
+      // baseURL: "http://localhost:8080/v1",  // llama.cpp server
+    },
+  },
+});
+
+// Use any locally-running model
+const response = await hub.generate({
+  provider: Provider.OpenAI,
+  model: "llama3.2",
+  messages: [{ role: "user", content: [{ type: "text", text: "Hello" }] }],
+});
+```
+
+SSE streaming works identically—local servers emit events in OpenAI-compatible format, enabling progressive rendering in UI consumers.
+
 ## Python usage
 
 ```py
