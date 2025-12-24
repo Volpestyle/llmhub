@@ -44,7 +44,7 @@ export function httpHandlers(hub: Hub) {
     generate:
       () => async (req: RequestLike, res: ResponseLike) => {
         try {
-          const input = normalizeGenerateInput(req.body);
+          const input = normalizeGenerateInput(req.body ?? null);
           const output = await hub.generate({ ...input, stream: false });
           res.status(200).json(output);
         } catch (err) {
@@ -55,7 +55,7 @@ export function httpHandlers(hub: Hub) {
       () => async (req: RequestLike, res: ResponseLike) => {
         try {
           const input = normalizeGenerateInput(
-            req.method === "GET" ? parseQueryPayload(req) : req.body,
+            req.method === "GET" ? parseQueryPayload(req) : req.body ?? null,
           );
           const iterable = hub.streamGenerate({ ...input, stream: true });
           prepareSSE(res);
@@ -140,8 +140,12 @@ function toProvider(value: string): Provider | undefined {
   }
 }
 
-function normalizeGenerateInput(payload: GenerateInput | string | null): GenerateInput {
-  let parsed: GenerateInput | string | null | Record<string, unknown> = payload;
+function normalizeGenerateInput(payload: unknown): GenerateInput {
+  let parsed: GenerateInput | string | null | Record<string, unknown> = payload as
+    | GenerateInput
+    | string
+    | null
+    | Record<string, unknown>;
   if (typeof parsed === "string") {
     try {
       parsed = JSON.parse(parsed);
