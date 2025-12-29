@@ -13,6 +13,7 @@ type Config struct {
 	Anthropic   *AnthropicConfig
 	XAI         *XAIConfig
 	Google      *GoogleConfig
+	Ollama      *OllamaConfig
 	HTTPClient  *http.Client
 	RegistryTTL time.Duration
 	Adapters    map[Provider]ProviderAdapter
@@ -45,6 +46,13 @@ type GoogleConfig struct {
 	APIKey  string
 	APIKeys []string
 	BaseURL string
+}
+
+type OllamaConfig struct {
+	APIKey              string
+	APIKeys             []string
+	BaseURL             string
+	DefaultUseResponses bool
 }
 
 type ProviderAdapter interface {
@@ -117,6 +125,15 @@ func New(config Config) (*Kit, error) {
 		cfg.APIKey = keys[0]
 		adapters[ProviderGoogle] = newGoogleAdapter(&cfg, client)
 		keyPools[ProviderGoogle] = newKeyPool(keys)
+	}
+	if config.Ollama != nil && adapters[ProviderOllama] == nil {
+		cfg := *config.Ollama
+		keys := normalizeKeys(cfg.APIKey, cfg.APIKeys)
+		if len(keys) > 0 {
+			cfg.APIKey = keys[0]
+			keyPools[ProviderOllama] = newKeyPool(keys)
+		}
+		adapters[ProviderOllama] = newOllamaAdapter(&cfg, client)
 	}
 	if catalog := newCatalogAdapter(); catalog != nil && adapters[ProviderCatalog] == nil {
 		adapters[ProviderCatalog] = catalog
@@ -338,15 +355,22 @@ func newAdapterFactory(config Config, client *http.Client, adapters map[Provider
 			cfg := *config.XAI
 			cfg.APIKey = apiKey
 			return newXAIAdapter(&cfg, client), nil
-		case ProviderGoogle:
-			if config.Google == nil {
-				return nil, fmt.Errorf("google config is not available")
-			}
-			cfg := *config.Google
-			cfg.APIKey = apiKey
-			return newGoogleAdapter(&cfg, client), nil
-		default:
-			return nil, fmt.Errorf("provider %s is not configured", provider)
+	case ProviderGoogle:
+		if config.Google == nil {
+			return nil, fmt.Errorf("google config is not available")
 		}
+		cfg := *config.Google
+		cfg.APIKey = apiKey
+		return newGoogleAdapter(&cfg, client), nil
+	case ProviderOllama:
+		if config.Ollama == nil {
+			return nil, fmt.Errorf("ollama config is not available")
+		}
+		cfg := *config.Ollama
+		cfg.APIKey = apiKey
+		return newOllamaAdapter(&cfg, client), nil
+	default:
+		return nil, fmt.Errorf("provider %s is not configured", provider)
 	}
+}
 }

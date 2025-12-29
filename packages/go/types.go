@@ -8,6 +8,7 @@ const (
 	ProviderXAI       Provider = "xai"
 	ProviderGoogle    Provider = "google"
 	ProviderCatalog   Provider = "catalog"
+	ProviderOllama    Provider = "ollama"
 )
 
 type ModelCapabilities struct {

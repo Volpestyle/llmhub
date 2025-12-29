@@ -3,6 +3,7 @@ import { AnthropicAdapter } from "../adapters/anthropic.js";
 import { OpenAIAdapter } from "../adapters/openai.js";
 import { XAIAdapter } from "../adapters/xai.js";
 import { GoogleAdapter } from "../adapters/gemini.js";
+import { OllamaAdapter } from "../adapters/ollama.js";
 import { AdapterMap, ProviderAdapter } from "./provider.js";
 import { fingerprintApiKey } from "./entitlements.js";
 import {
@@ -343,6 +344,13 @@ export function createKit(config: KitConfig): Kit {
     );
     keyPools.set(Provider.Google, new KeyPool(keys));
   }
+  if (config.providers[Provider.Ollama] && !adapters[Provider.Ollama]) {
+    const providerConfig = config.providers[Provider.Ollama]!;
+    adapters[Provider.Ollama] = new OllamaAdapter(
+      providerConfig,
+      config.httpClient,
+    );
+  }
 
   const baseAdapterFactory = (
     provider: Provider,
@@ -385,6 +393,11 @@ export function createKit(config: KitConfig): Kit {
         );
       case Provider.Google:
         return new GoogleAdapter(
+          { ...baseConfig, apiKey: entitlement.apiKey },
+          config.httpClient,
+        );
+      case Provider.Ollama:
+        return new OllamaAdapter(
           { ...baseConfig, apiKey: entitlement.apiKey },
           config.httpClient,
         );

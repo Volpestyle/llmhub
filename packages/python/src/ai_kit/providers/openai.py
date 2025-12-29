@@ -220,10 +220,9 @@ class OpenAIAdapter:
         return self.config.default_use_responses
 
     def _headers(self) -> Dict[str, str]:
-        headers = {
-            "Authorization": f"Bearer {self.config.api_key}",
-            "Content-Type": "application/json",
-        }
+        headers = {"Content-Type": "application/json"}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
         if self.config.organization:
             headers["OpenAI-Organization"] = self.config.organization
         return headers

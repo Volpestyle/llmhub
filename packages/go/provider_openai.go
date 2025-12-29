@@ -363,7 +363,9 @@ func (a *openAIAdapter) jsonRequest(ctx context.Context, method, path string, pa
 
 func (a *openAIAdapter) applyHeaders(req *http.Request) {
 	req.Header.Set("content-type", "application/json")
-	req.Header.Set("authorization", fmt.Sprintf("Bearer %s", a.config.APIKey))
+	if strings.TrimSpace(a.config.APIKey) != "" {
+		req.Header.Set("authorization", fmt.Sprintf("Bearer %s", a.config.APIKey))
+	}
 	if a.config.Organization != "" {
 		req.Header.Set("OpenAI-Organization", a.config.Organization)
 	}

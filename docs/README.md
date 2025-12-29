@@ -9,7 +9,7 @@ Key building blocks:
 - Kit: orchestration layer for list, generate, and stream.
 - Model registry: caches provider model lists, applies curated metadata and pricing.
 - Model router: resolves a preferred or cheapest model based on constraints.
-- Provider adapters: OpenAI, Anthropic, Google Gemini, and xAI.
+- Provider adapters: OpenAI, Anthropic, Google Gemini, xAI, and Ollama.
 - HTTP handlers (Node/Go) and ASGI adapter (Python): drop-in endpoints for REST + SSE.
 
 ## Architecture

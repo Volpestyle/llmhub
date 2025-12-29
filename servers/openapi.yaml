@@ -11,7 +11,7 @@ paths:
           name: providers
           schema:
             type: string
-            description: Comma separated provider ids (openai, anthropic, google, xai)
+            description: Comma separated provider ids (openai, anthropic, google, xai, ollama)
       responses:
         '200':
           description: Successful response
@@ -97,7 +97,7 @@ components:
           type: string
         provider:
           type: string
-          enum: [openai, anthropic, google, xai]
+          enum: [openai, anthropic, google, xai, ollama]
         family:
           type: string
         capabilities:

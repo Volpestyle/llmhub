@@ -5,6 +5,7 @@ export enum Provider {
   Anthropic = "anthropic",
   XAI = "xai",
   Google = "google",
+  Ollama = "ollama",
 }
 
 export type ProviderMap<T> = Partial<Record<Provider, T>>;
@@ -328,6 +329,12 @@ export interface OpenAIProviderConfig {
   defaultUseResponses?: boolean;
 }
 
+export interface OllamaProviderConfig {
+  apiKey?: string;
+  baseURL?: string;
+  defaultUseResponses?: boolean;
+}
+
 export interface AnthropicProviderConfig {
   apiKey?: string;
   apiKeys?: string[];
@@ -357,6 +364,7 @@ export type ProviderConfigs = {
   [Provider.Anthropic]: AnthropicProviderConfig;
   [Provider.XAI]: XAIProviderConfig;
   [Provider.Google]: GoogleProviderConfig;
+  [Provider.Ollama]: OllamaProviderConfig;
 };
 
 export type AnyProviderConfig =

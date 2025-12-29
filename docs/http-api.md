@@ -5,7 +5,7 @@ wiring HTTP endpoints to a Kit instance, and Python ships an ASGI adapter for th
 For SSE, the ASGI adapter is a good fit because it supports native streaming.
 
 ## Suggested endpoints
-- `GET /provider-models` -> list models (query `providers=openai,anthropic`)
+- `GET /provider-models` -> list models (query `providers=openai,anthropic,ollama`)
 - `POST /generate` -> text generation
 - `POST /image` -> image generation
 - `POST /mesh` -> mesh generation
@@ -13,8 +13,10 @@ For SSE, the ASGI adapter is a good fit because it supports native streaming.
 
 ## Example: list models
 ```bash
-curl "http://localhost:3000/provider-models?providers=openai,anthropic"
+curl "http://localhost:3000/provider-models?providers=openai,anthropic,ollama"
 ```
+
+Ollama uses the OpenAI-compatible API on `http://localhost:11434`; it does not require an API key.
 
 ## Example: generate
 ```bash

@@ -27,6 +27,8 @@ from .providers import (
     OpenAIConfig,
     XAIAdapter,
     XAIConfig,
+    OllamaAdapter,
+    OllamaConfig,
 )
 
 
@@ -207,6 +209,8 @@ class Kit:
             adapters["google"] = GeminiAdapter(providers["google"])
         if "xai" in providers:
             adapters["xai"] = XAIAdapter(providers["xai"])
+        if "ollama" in providers:
+            adapters["ollama"] = OllamaAdapter(providers["ollama"])
         return adapters
 
     def _prepare_providers(self, providers: Dict[Provider, object]):
@@ -214,6 +218,13 @@ class Kit:
         normalized: Dict[Provider, object] = {}
         for provider, cfg in providers.items():
             keys = self._collect_keys(cfg)
+            if provider == "ollama":
+                if keys:
+                    key_pools[provider] = _KeyPool(keys)
+                    normalized[provider] = self._with_api_key(cfg, keys[0])
+                else:
+                    normalized[provider] = cfg
+                continue
             if not keys:
                 raise InferenceKitError(
                     KitErrorPayload(
@@ -305,6 +316,14 @@ class Kit:
                 timeout=getattr(base_config, "timeout", None),
             )
             return XAIAdapter(config)
+        if provider == "ollama":
+            config = OllamaConfig(
+                api_key=entitlement.apiKey,
+                base_url=getattr(base_config, "base_url", "http://localhost:11434"),
+                default_use_responses=getattr(base_config, "default_use_responses", False),
+                timeout=getattr(base_config, "timeout", None),
+            )
+            return OllamaAdapter(config)
         return None
 
     def _require_adapter(self, provider: Provider, entitlement: EntitlementContext | None = None):

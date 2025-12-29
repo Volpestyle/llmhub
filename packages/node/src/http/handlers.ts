@@ -161,6 +161,8 @@ function toProvider(value: string): Provider | undefined {
       return Provider.Google;
     case Provider.XAI:
       return Provider.XAI;
+    case Provider.Ollama:
+      return Provider.Ollama;
     default:
       return undefined;
   }

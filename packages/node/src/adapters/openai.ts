@@ -543,15 +543,20 @@ export class OpenAIAdapter implements ProviderAdapter {
       });
     }
     const url = `${this.baseURL}${path}`;
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      ...(init.headers ?? {}),
+    };
+    if (this.config.apiKey) {
+      headers.Authorization = `Bearer ${this.config.apiKey}`;
+    }
+    if (this.config.organization) {
+      headers["OpenAI-Organization"] = this.config.organization;
+    }
     const response = await fetchImpl(url, {
       ...init,
       headers: {
-        "content-type": "application/json",
-        Authorization: `Bearer ${this.config.apiKey}`,
-        ...(this.config.organization
-          ? { "OpenAI-Organization": this.config.organization }
-          : {}),
-        ...(init.headers ?? {}),
+        ...headers,
       },
       signal: (init as any).signal,
     });

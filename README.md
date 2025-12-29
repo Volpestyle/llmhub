@@ -2,8 +2,8 @@
 
 Provider-agnostic inference tooling for Node.js, Go, and Python. The repo standardizes model
 listing, routing, generation, streaming (SSE), and cost estimation across OpenAI, Anthropic,
-Google Gemini, and xAI. It also ships shared curated model metadata and a reference OpenAPI
-spec for HTTP servers.
+Google Gemini, xAI, and local Ollama endpoints. It also ships shared curated model metadata
+and a reference OpenAPI spec for HTTP servers.
 
 ## Packages
 - `packages/node`: Node.js SDK and HTTP handlers
@@ -105,6 +105,36 @@ out = kit.generate(
 )
 
 print(out.text)
+```
+
+## Ollama (local)
+Ollama speaks the OpenAI-compatible API on `http://localhost:11434`. Configure the
+`ollama` provider without an API key.
+
+### Node.js
+```ts
+import { createKit, Provider } from "@volpestyle/ai-kit-node";
+
+const kit = createKit({
+  providers: {
+    [Provider.Ollama]: { baseURL: "http://localhost:11434" },
+  },
+});
+```
+
+### Go
+```go
+kit, err := aikit.New(aikit.Config{
+  Ollama: &aikit.OllamaConfig{BaseURL: "http://localhost:11434"},
+})
+```
+
+### Python
+```py
+from ai_kit import Kit, KitConfig
+from ai_kit.providers import OllamaConfig
+
+kit = Kit(KitConfig(providers={"ollama": OllamaConfig(base_url="http://localhost:11434")}))
 ```
 
 ## Examples
