@@ -1,222 +1,363 @@
 [
   {
-    "id": "gpt-4o",
-    "displayName": "GPT-4o",
+    "id": "gpt-4",
     "provider": "openai",
-    "family": "gpt-4o",
+    "displayName": "GPT-4",
+    "tokenPrices": {
+      "input": 0.03,
+      "output": 0.06
+    },
+    "contextWindow": 8192,
     "capabilities": {
       "text": true,
-      "vision": true,
-      "tool_use": true,
+      "vision": false,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": true
+    }
+  },
+  {
+    "id": "gpt-3.5-turbo",
+    "provider": "openai",
+    "displayName": "GPT-3.5 Turbo",
+    "tokenPrices": {
+      "input": 0.01,
+      "output": 0.02
+    },
+    "contextWindow": 4096,
+    "capabilities": {
+      "text": true,
+      "vision": false,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": true
+    }
+  },
+  {
+    "id": "grok-4-1-fast-reasoning",
+    "provider": "xai",
+    "displayName": "grok-4-1-fast-reasoning",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 0.5
+    },
+    "contextWindow": 2000000,
+    "capabilities": {
+      "text": true,
       "structured_output": true,
       "reasoning": true
-    },
-    "contextWindow": 128000,
-    "tokenPrices": {
-      "input": 5,
-      "output": 15
-    },
-    "deprecated": false,
-    "inPreview": false
+    }
   },
   {
-    "id": "gpt-4o-mini",
-    "displayName": "GPT-4o Mini",
-    "provider": "openai",
-    "family": "gpt-4o",
+    "id": "grok-4-1-fast-non-reasoning",
+    "provider": "xai",
+    "displayName": "grok-4-1-fast-non-reasoning",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 0.5
+    },
+    "contextWindow": 2000000,
     "capabilities": {
       "text": true,
-      "vision": true,
-      "tool_use": true,
-      "structured_output": true,
+      "structured_output": false,
       "reasoning": false
-    },
-    "contextWindow": 128000,
-    "tokenPrices": {
-      "input": 0.15,
-      "output": 0.6
-    },
-    "deprecated": false,
-    "inPreview": false
+    }
   },
   {
-    "id": "gpt-4.1",
-    "displayName": "GPT-4.1",
-    "provider": "openai",
-    "family": "gpt-4.1",
+    "id": "grok-code-fast-1",
+    "provider": "xai",
+    "displayName": "grok-code-fast-1",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 1.5
+    },
+    "contextWindow": 256000,
     "capabilities": {
       "text": true,
-      "vision": true,
-      "tool_use": true,
+      "structured_output": false,
+      "reasoning": false
+    }
+  },
+  {
+    "id": "grok-4-fast-reasoning",
+    "provider": "xai",
+    "displayName": "grok-4-fast-reasoning",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 0.5
+    },
+    "contextWindow": 2000000,
+    "capabilities": {
+      "text": true,
       "structured_output": true,
       "reasoning": true
-    },
-    "contextWindow": 200000,
-    "tokenPrices": {
-      "input": 5,
-      "output": 15
-    },
-    "deprecated": false,
-    "inPreview": true
+    }
   },
   {
-    "id": "gpt-4.1-mini",
-    "displayName": "GPT-4.1 Mini",
-    "provider": "openai",
-    "family": "gpt-4.1",
+    "id": "grok-4-fast-non-reasoning",
+    "provider": "xai",
+    "displayName": "grok-4-fast-non-reasoning",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 0.5
+    },
+    "contextWindow": 2000000,
     "capabilities": {
       "text": true,
-      "vision": true,
-      "tool_use": true,
-      "structured_output": true,
+      "structured_output": false,
       "reasoning": false
-    },
-    "contextWindow": 200000,
-    "tokenPrices": {
-      "input": 0.3,
-      "output": 1.2
-    },
-    "deprecated": false,
-    "inPreview": true
+    }
   },
   {
-    "id": "gpt-4.1-nano",
-    "displayName": "GPT-4.1 Nano",
-    "provider": "openai",
-    "family": "gpt-4.1",
-    "capabilities": {
-      "text": true,
-      "vision": true,
-      "tool_use": true,
-      "structured_output": true,
-      "reasoning": false
-    },
-    "contextWindow": 200000,
-    "tokenPrices": {
-      "input": 0.05,
-      "output": 0.2
-    },
-    "deprecated": false,
-    "inPreview": true
-  },
-  {
-    "id": "claude-3-7-sonnet-latest",
-    "displayName": "Claude 3.7 Sonnet",
-    "provider": "anthropic",
-    "family": "claude-3-7",
-    "capabilities": {
-      "text": true,
-      "vision": true,
-      "tool_use": true,
-      "structured_output": true,
-      "reasoning": true
-    },
-    "contextWindow": 200000,
+    "id": "grok-4-0709",
+    "provider": "xai",
+    "displayName": "grok-4-0709",
     "tokenPrices": {
       "input": 3,
       "output": 15
     },
-    "deprecated": false,
-    "inPreview": false
-  },
-  {
-    "id": "claude-3-5-haiku-latest",
-    "displayName": "Claude 3.5 Haiku",
-    "provider": "anthropic",
-    "family": "claude-3-5",
+    "contextWindow": 256000,
     "capabilities": {
       "text": true,
-      "vision": true,
-      "tool_use": true,
-      "structured_output": true,
+      "structured_output": false,
       "reasoning": false
-    },
-    "contextWindow": 200000,
-    "tokenPrices": {
-      "input": 1,
-      "output": 5
-    },
-    "deprecated": false,
-    "inPreview": false
+    }
   },
   {
-    "id": "grok-2-1212",
-    "displayName": "Grok-2 1212",
+    "id": "grok-3-mini",
     "provider": "xai",
-    "family": "grok-2",
-    "capabilities": {
-      "text": true,
-      "vision": true,
-      "tool_use": true,
-      "structured_output": true,
-      "reasoning": true
+    "displayName": "grok-3-mini",
+    "tokenPrices": {
+      "input": 0.3,
+      "output": 0.5
     },
     "contextWindow": 131072,
-    "tokenPrices": {
-      "input": 1,
-      "output": 2
-    },
-    "deprecated": false,
-    "inPreview": true
-  },
-  {
-    "id": "grok-2-mini",
-    "displayName": "Grok-2 Mini",
-    "provider": "xai",
-    "family": "grok-2",
     "capabilities": {
       "text": true,
-      "vision": true,
-      "tool_use": true,
-      "structured_output": true,
+      "structured_output": false,
       "reasoning": false
+    }
+  },
+  {
+    "id": "grok-3",
+    "provider": "xai",
+    "displayName": "grok-3",
+    "tokenPrices": {
+      "input": 3,
+      "output": 15
     },
     "contextWindow": 131072,
-    "tokenPrices": {
-      "input": 0.2,
-      "output": 0.4
-    },
-    "deprecated": false,
-    "inPreview": false
-  },
-  {
-    "id": "gemini-1.5-pro",
-    "displayName": "Gemini 1.5 Pro",
-    "provider": "google",
-    "family": "gemini-1.5",
     "capabilities": {
       "text": true,
-      "vision": true,
-      "tool_use": true,
-      "structured_output": true,
-      "reasoning": true
-    },
-    "contextWindow": 1000000,
-    "tokenPrices": {
-      "input": 1.25,
-      "output": 5
-    },
-    "deprecated": false,
-    "inPreview": false
-  },
-  {
-    "id": "gemini-1.5-flash",
-    "displayName": "Gemini 1.5 Flash",
-    "provider": "google",
-    "family": "gemini-1.5",
-    "capabilities": {
-      "text": true,
-      "vision": true,
-      "tool_use": true,
-      "structured_output": true,
+      "structured_output": false,
       "reasoning": false
+    }
+  },
+  {
+    "id": "grok-2-vision-1212",
+    "provider": "xai",
+    "displayName": "grok-2-vision-1212",
+    "tokenPrices": {
+      "input": 2,
+      "output": 10
+    },
+    "contextWindow": 32768,
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "structured_output": false,
+      "reasoning": false
+    }
+  },
+  {
+    "id": "grok-2-image-1212",
+    "provider": "xai",
+    "displayName": "grok-2-image-1212",
+    "capabilities": {
+      "vision": true
+    }
+  },
+  {
+    "id": "gemini-3-pro-preview",
+    "provider": "google",
+    "displayName": "Gemini 3 Pro Preview",
+    "tokenPrices": {
+      "input": 2000,
+      "output": 12000
+    },
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-3-flash-preview",
+    "provider": "google",
+    "displayName": "Gemini 3 Flash Preview",
+    "tokenPrices": {
+      "input": 500,
+      "output": 3000
+    },
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-3-pro-image-preview",
+    "provider": "google",
+    "displayName": "Gemini 3 Pro Image Preview 🍌",
+    "tokenPrices": {
+      "input": 2000,
+      "output": 12000
+    },
+    "capabilities": {
+      "text": true,
+      "vision": true
+    }
+  },
+  {
+    "id": "gemini-2.5-pro",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Pro",
+    "tokenPrices": {
+      "input": 1250,
+      "output": 10000
+    },
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-2.5-flash",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash",
+    "tokenPrices": {
+      "input": 300,
+      "output": 2500
     },
     "contextWindow": 1000000,
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-2.5-flash-lite",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash-Lite",
     "tokenPrices": {
-      "input": 0.35,
-      "output": 1.05
+      "input": 100,
+      "output": 400
     },
-    "deprecated": false,
-    "inPreview": false
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-2.5-flash-native-audio-preview-12-2025",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash Native Audio (Live API)",
+    "tokenPrices": {
+      "input": 500,
+      "output": 2000
+    },
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-2.5-flash-image",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash Image 🍌",
+    "tokenPrices": {
+      "input": 300,
+      "output": 39
+    },
+    "capabilities": {
+      "text": true,
+      "vision": true
+    }
+  },
+  {
+    "id": "gemini-2.5-flash-preview-tts",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash Preview TTS",
+    "tokenPrices": {
+      "input": 500,
+      "output": 10000
+    },
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-2.5-pro-preview-tts",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Pro Preview TTS",
+    "tokenPrices": {
+      "input": 100,
+      "output": 20000
+    },
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-2.0-flash",
+    "provider": "google",
+    "displayName": "Gemini 2.0 Flash",
+    "tokenPrices": {
+      "input": 100,
+      "output": 400
+    },
+    "contextWindow": 1000000,
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-2.0-flash-lite",
+    "provider": "google",
+    "displayName": "Gemini 2.0 Flash-Lite",
+    "tokenPrices": {
+      "input": 75,
+      "output": 300
+    },
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-embedding-001",
+    "provider": "google",
+    "displayName": "Gemini Embedding",
+    "tokenPrices": {
+      "input": 150
+    },
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-robotics-er-1.5-preview",
+    "provider": "google",
+    "displayName": "Gemini Robotics-ER 1.5 Preview",
+    "tokenPrices": {
+      "input": 300,
+      "output": 2500
+    },
+    "capabilities": {
+      "text": true
+    }
+  },
+  {
+    "id": "gemini-2.5-computer-use-preview-10-2025",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Computer Use Preview",
+    "tokenPrices": {
+      "input": 1250,
+      "output": 10000
+    },
+    "capabilities": {
+      "text": true
+    }
   }
 ]
