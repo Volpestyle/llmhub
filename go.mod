@@ -1,3 +1,3 @@
-module github.com/Volpestyle/inference-kit
+module github.com/Volpestyle/ai-kit
 
 go 1.22

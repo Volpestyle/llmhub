@@ -19,7 +19,10 @@ def _get_pipeline_cached(task: str, model: str, device_str: str):
 
     from transformers import pipeline as hf_pipeline
 
-    trust_remote_code = os.getenv("INFERENCE_KIT_TRUST_REMOTE_CODE", "").strip().lower() in {
+    trust_remote_code = _env_value(
+        "AI_KIT_TRUST_REMOTE_CODE",
+        "INFERENCE_KIT_TRUST_REMOTE_CODE",
+    ).strip().lower() in {
         "1",
         "true",
         "yes",
@@ -38,3 +41,10 @@ def _move_pipeline_to_device(pipe, device_str: str) -> None:
         pipe.model.to(device)
     if hasattr(pipe, "device"):
         pipe.device = device
+
+
+def _env_value(primary: str, legacy: str) -> str:
+    value = os.getenv(primary, "")
+    if value:
+        return value
+    return os.getenv(legacy, "")

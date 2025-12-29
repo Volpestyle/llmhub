@@ -51,10 +51,10 @@ the same endpoints listed above and supports SSE streaming.
 ```py
 import os
 from fastapi import FastAPI
-from inference_kit import Hub, HubConfig, create_asgi_app
-from inference_kit.providers import OpenAIConfig
+from ai_kit import Hub, HubConfig, create_asgi_app
+from ai_kit.providers import OpenAIConfig
 
-hub = Hub(
+kit = Hub(
     HubConfig(
         providers={
             "openai": OpenAIConfig(api_key=os.environ.get("OPENAI_API_KEY", "")),
@@ -63,7 +63,7 @@ hub = Hub(
 )
 
 app = FastAPI()
-app.mount("/inference", create_asgi_app(hub))
+app.mount("/inference", create_asgi_app(kit))
 ```
 
 If you are serving the ASGI app directly and want a prefix, pass `base_path="/inference"`.

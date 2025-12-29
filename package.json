@@ -1,11 +1,11 @@
 {
-  "name": "inference-kit",
+  "name": "ai-kit",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "refresh:models": "pnpm --filter @volpestyle/inference-kit-node refresh:models"
+    "refresh:models": "pnpm --filter @volpestyle/ai-kit-node refresh:models"
   },
   "packageManager": "pnpm@9.0.0+sha256.bdfc9a7b372b5c462176993e586492603e20da5864d2f8881edc2462482c76fa"
 }

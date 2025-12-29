@@ -1,7 +1,7 @@
-# inference-kit documentation
+# ai-kit documentation
 
 ## Overview
-Inference-kit is a monorepo that standardizes model discovery, routing, and inference across
+ai-kit is a monorepo that standardizes model discovery, routing, and inference across
 Node.js, Go, and Python. Each SDK exposes a Hub for generation, a model registry with caching,
 optional model routing, and SSE support for progressive UI rendering.
 

@@ -1,6 +1,6 @@
-# inference-kit (Python)
+# ai-kit (Python)
 
-Python implementation of inference-kit provider adapters, model registry, router, and
+Python implementation of ai-kit provider adapters, model registry, router, and
 optional local pipelines for basic vision tasks.
 
 ## Quickstart
@@ -9,10 +9,10 @@ python -m pip install -e packages/python
 ```
 ```py
 import os
-from inference_kit import Hub, HubConfig, GenerateInput, Message, ContentPart
-from inference_kit.providers import OpenAIConfig
+from ai_kit import Hub, HubConfig, GenerateInput, Message, ContentPart
+from ai_kit.providers import OpenAIConfig
 
-hub = Hub(
+kit = Hub(
     HubConfig(
         providers={
             "openai": OpenAIConfig(api_key=os.environ.get("OPENAI_API_KEY", ""))
@@ -20,7 +20,7 @@ hub = Hub(
     )
 )
 
-out = hub.generate(
+out = kit.generate(
     GenerateInput(
         provider="openai",
         model="gpt-4o-mini",
@@ -34,9 +34,9 @@ print(out.text)
 ## Examples
 ### Stream tokens
 ```py
-from inference_kit import GenerateInput, Message, ContentPart
+from ai_kit import GenerateInput, Message, ContentPart
 
-stream = hub.stream_generate(
+stream = kit.stream_generate(
     GenerateInput(
         provider="openai",
         model="gpt-4o-mini",
@@ -54,7 +54,7 @@ for chunk in stream:
 Local pipelines rely on `torch`, `transformers`, `Pillow`, and `numpy`.
 ```py
 from pathlib import Path
-from inference_kit.local import get_pipeline, load_rgb
+from ai_kit.local import get_pipeline, load_rgb
 
 pipe = get_pipeline("image-segmentation", "rmbg-1.4")
 image = load_rgb(Path("input.jpg"))

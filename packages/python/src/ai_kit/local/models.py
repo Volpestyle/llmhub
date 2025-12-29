@@ -24,13 +24,13 @@ REGISTRY.register(
 REGISTRY.register(
     "novel-view",
     "zero123-plus",
-    "sudo-ai/zero123plus",
-    default=True,
+    "sudo-ai/zero123plus-v1.2",
 )
 REGISTRY.register(
     "novel-view",
     "stable-zero123",
-    "stabilityai/stable-zero123",
+    "ashawkey/stable-zero123-diffusers",
+    default=True,
 )
 REGISTRY.register(
     "novel-view",

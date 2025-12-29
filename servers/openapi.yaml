@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: inference-kit reference API
+  title: ai-kit reference API
   version: 1.0.0
 paths:
   /provider-models:

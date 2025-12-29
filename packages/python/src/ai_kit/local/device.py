@@ -10,9 +10,9 @@ def resolve_device(preferred: object | None = None):
         raise RuntimeError("torch is required for local model runners") from exc
     if isinstance(preferred, torch.device):
         return preferred
-    if _env_bool("INFERENCE_KIT_LOCAL_DISABLE_GPU", False):
+    if _env_bool("AI_KIT_LOCAL_DISABLE_GPU", "INFERENCE_KIT_LOCAL_DISABLE_GPU", False):
         return torch.device("cpu")
-    raw = str(preferred or os.getenv("INFERENCE_KIT_LOCAL_DEVICE", "")).strip().lower()
+    raw = str(preferred or _env_value("AI_KIT_LOCAL_DEVICE", "INFERENCE_KIT_LOCAL_DEVICE")).strip().lower()
     if raw and raw != "auto":
         return torch.device(raw)
     if torch.backends.mps.is_available():
@@ -22,8 +22,15 @@ def resolve_device(preferred: object | None = None):
     return torch.device("cpu")
 
 
-def _env_bool(key: str, default: bool) -> bool:
-    raw = os.getenv(key, "").strip().lower()
+def _env_value(primary: str, legacy: str) -> str:
+    value = os.getenv(primary, "")
+    if value:
+        return value
+    return os.getenv(legacy, "")
+
+
+def _env_bool(primary: str, legacy: str, default: bool) -> bool:
+    raw = _env_value(primary, legacy).strip().lower()
     if not raw:
         return default
     return raw in ("1", "true", "yes", "on")

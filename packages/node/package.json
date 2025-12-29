@@ -1,5 +1,5 @@
 {
-  "name": "@volpestyle/inference-kit-node",
+  "name": "@volpestyle/ai-kit-node",
   "version": "0.1.0",
   "description": "Cross-provider model registry and inference adapter for Node.js",
   "license": "MIT",

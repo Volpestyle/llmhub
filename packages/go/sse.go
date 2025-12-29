@@ -1,4 +1,4 @@
-package inferencekit
+package aikit
 
 import (
 	"bufio"

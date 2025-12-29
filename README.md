@@ -1,4 +1,4 @@
-# inference-kit
+# ai-kit
 
 Provider-agnostic inference tooling for Node.js, Go, and Python. The repo standardizes model
 listing, routing, generation, streaming (SSE), and cost estimation across OpenAI, Anthropic,
@@ -17,18 +17,18 @@ spec for HTTP servers.
 ### Node.js
 ```bash
 pnpm install
-pnpm --filter @volpestyle/inference-kit-node build
+pnpm --filter @volpestyle/ai-kit-node build
 ```
 ```ts
-import { createHub, Provider } from "@volpestyle/inference-kit-node";
+import { createHub, Provider } from "@volpestyle/ai-kit-node";
 
-const hub = createHub({
+const kit = createHub({
   providers: {
     [Provider.OpenAI]: { apiKey: process.env.OPENAI_API_KEY ?? "" },
   },
 });
 
-const output = await hub.generate({
+const output = await kit.generate({
   provider: Provider.OpenAI,
   model: "gpt-4o-mini",
   messages: [{ role: "user", content: [{ type: "text", text: "Hello" }] }],
@@ -39,7 +39,7 @@ console.log(output.text);
 
 ### Go
 ```bash
-go get github.com/Volpestyle/inference-kit/packages/go
+go get github.com/Volpestyle/ai-kit/packages/go
 ```
 ```go
 package main
@@ -49,23 +49,23 @@ import (
   "fmt"
   "os"
 
-  inferencekit "github.com/Volpestyle/inference-kit/packages/go"
+  aikit "github.com/Volpestyle/ai-kit/packages/go"
 )
 
 func main() {
-  hub, err := inferencekit.New(inferencekit.Config{
-    OpenAI: &inferencekit.OpenAIConfig{APIKey: os.Getenv("OPENAI_API_KEY")},
+  kit, err := aikit.New(aikit.Config{
+    OpenAI: &aikit.OpenAIConfig{APIKey: os.Getenv("OPENAI_API_KEY")},
   })
   if err != nil {
     panic(err)
   }
 
-  out, err := hub.Generate(context.Background(), inferencekit.GenerateInput{
-    Provider: inferencekit.ProviderOpenAI,
+  out, err := kit.Generate(context.Background(), aikit.GenerateInput{
+    Provider: aikit.ProviderOpenAI,
     Model:    "gpt-4o-mini",
-    Messages: []inferencekit.Message{{
+    Messages: []aikit.Message{{
       Role: "user",
-      Content: []inferencekit.ContentPart{{
+      Content: []aikit.ContentPart{{
         Type: "text",
         Text: "Hello",
       }},
@@ -85,10 +85,10 @@ python -m pip install -e packages/python
 ```
 ```py
 import os
-from inference_kit import Hub, HubConfig, GenerateInput, Message, ContentPart
-from inference_kit.providers import OpenAIConfig
+from ai_kit import Hub, HubConfig, GenerateInput, Message, ContentPart
+from ai_kit.providers import OpenAIConfig
 
-hub = Hub(
+kit = Hub(
     HubConfig(
         providers={
             "openai": OpenAIConfig(api_key=os.environ.get("OPENAI_API_KEY", ""))
@@ -96,7 +96,7 @@ hub = Hub(
     )
 )
 
-out = hub.generate(
+out = kit.generate(
     GenerateInput(
         provider="openai",
         model="gpt-4o-mini",
@@ -110,16 +110,16 @@ print(out.text)
 ## Examples
 ### Auto-select the cheapest compatible model
 ```ts
-import { ModelRouter, Provider } from "@volpestyle/inference-kit-node";
+import { ModelRouter, Provider } from "@volpestyle/ai-kit-node";
 
-const models = await hub.listModelRecords();
+const models = await kit.listModelRecords();
 const router = new ModelRouter();
 const resolved = router.resolve(models, {
   constraints: { requireTools: true, maxCostUsd: 2.0 },
   preferredModels: ["openai:gpt-4o-mini"],
 });
 
-const output = await hub.generate({
+const output = await kit.generate({
   provider: resolved.primary.provider,
   model: resolved.primary.providerModelId,
   messages: [{ role: "user", content: [{ type: "text", text: "Summarize this" }] }],
@@ -129,18 +129,18 @@ const output = await hub.generate({
 ### Stream SSE for progressive UI rendering (Node)
 ```ts
 import express from "express";
-import { createHub, httpHandlers, Provider } from "@volpestyle/inference-kit-node";
+import { createHub, httpHandlers, Provider } from "@volpestyle/ai-kit-node";
 
 const app = express();
 app.use(express.json());
 
-const hub = createHub({
+const kit = createHub({
   providers: {
     [Provider.OpenAI]: { apiKey: process.env.OPENAI_API_KEY ?? "" },
   },
 });
 
-const handlers = httpHandlers(hub);
+const handlers = httpHandlers(kit);
 app.post("/generate", handlers.generate());
 app.post("/generate/stream", handlers.generateSSE());
 app.get("/provider-models", handlers.models());

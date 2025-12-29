@@ -63,7 +63,10 @@ def get_novel_view_pipeline(model: str, device_str: str) -> NovelViewPipeline:
 
     device = torch.device(device_str)
     dtype = torch.float16 if device.type in {"cuda", "mps"} else torch.float32
-    trust_remote_code = os.getenv("INFERENCE_KIT_TRUST_REMOTE_CODE", "").strip().lower() in {
+    trust_remote_code = _env_value(
+        "AI_KIT_TRUST_REMOTE_CODE",
+        "INFERENCE_KIT_TRUST_REMOTE_CODE",
+    ).strip().lower() in {
         "1",
         "true",
         "yes",
@@ -141,6 +144,13 @@ def _build_call_kwargs(
         kwargs["num_images_per_prompt"] = 1
 
     return kwargs
+
+
+def _env_value(primary: str, legacy: str) -> str:
+    value = os.getenv(primary, "")
+    if value:
+        return value
+    return os.getenv(legacy, "")
 
 
 def _set_if_present(
