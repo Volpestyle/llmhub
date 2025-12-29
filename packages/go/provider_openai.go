@@ -207,7 +207,7 @@ func (a *openAIAdapter) Generate(ctx context.Context, in GenerateInput) (Generat
 
 func (a *openAIAdapter) GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error) {
 	if len(in.InputImages) > 0 {
-		return ImageGenerateOutput{}, &HubError{
+		return ImageGenerateOutput{}, &KitError{
 			Kind:     ErrorUnsupported,
 			Message:  "OpenAI image edits are not supported in this adapter",
 			Provider: a.provider,
@@ -233,7 +233,7 @@ func (a *openAIAdapter) GenerateImage(ctx context.Context, in ImageGenerateInput
 		return ImageGenerateOutput{}, err
 	}
 	if len(payload.Data) == 0 || payload.Data[0].B64JSON == "" {
-		return ImageGenerateOutput{}, &HubError{
+		return ImageGenerateOutput{}, &KitError{
 			Kind:     ErrorUnknown,
 			Message:  "OpenAI image response missing base64 data",
 			Provider: a.provider,
@@ -247,7 +247,7 @@ func (a *openAIAdapter) GenerateImage(ctx context.Context, in ImageGenerateInput
 }
 
 func (a *openAIAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error) {
-	return MeshGenerateOutput{}, &HubError{
+	return MeshGenerateOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "OpenAI mesh generation is not supported",
 		Provider: a.provider,

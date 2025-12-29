@@ -14,7 +14,7 @@ const (
 	ErrorUnsupported         ErrorKind = "unsupported"
 )
 
-type HubError struct {
+type KitError struct {
 	Kind           ErrorKind
 	Message        string
 	Provider       Provider
@@ -24,7 +24,7 @@ type HubError struct {
 	Cause          error
 }
 
-func (e *HubError) Error() string {
+func (e *KitError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Kind, e.Message)
 }
 

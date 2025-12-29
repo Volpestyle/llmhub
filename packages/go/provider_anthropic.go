@@ -119,7 +119,7 @@ func (a *anthropicAdapter) Generate(ctx context.Context, in GenerateInput) (Gene
 }
 
 func (a *anthropicAdapter) GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error) {
-	return ImageGenerateOutput{}, &HubError{
+	return ImageGenerateOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "Anthropic image generation is not supported",
 		Provider: a.provider,
@@ -127,7 +127,7 @@ func (a *anthropicAdapter) GenerateImage(ctx context.Context, in ImageGenerateIn
 }
 
 func (a *anthropicAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error) {
-	return MeshGenerateOutput{}, &HubError{
+	return MeshGenerateOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "Anthropic mesh generation is not supported",
 		Provider: a.provider,

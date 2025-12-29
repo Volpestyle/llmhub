@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
 
-from ..errors import ErrorKind, HubErrorPayload, InferenceKitError
+from ..errors import ErrorKind, KitErrorPayload, InferenceKitError
 from ..http import request_json, request_stream
 from ..sse import iter_sse_events
 from ..types import (
@@ -81,7 +81,7 @@ class AnthropicAdapter:
 
     def generate_image(self, input: ImageGenerateInput) -> ImageGenerateOutput:
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.UNSUPPORTED,
                 message="Anthropic image generation is not supported",
                 provider=self.provider,
@@ -90,7 +90,7 @@ class AnthropicAdapter:
 
     def generate_mesh(self, input: "MeshGenerateInput"):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.UNSUPPORTED,
                 message="Anthropic mesh generation is not supported",
                 provider=self.provider,

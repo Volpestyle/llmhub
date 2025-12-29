@@ -36,7 +36,7 @@ func TestHubGenerateContract(t *testing.T) {
 		}),
 	}
 
-	hub, err := New(Config{
+	kit, err := New(Config{
 		OpenAI:     &OpenAIConfig{APIKey: "openai", DefaultUseResponses: true},
 		Anthropic:  &AnthropicConfig{APIKey: "anthropic"},
 		XAI:        &XAIConfig{APIKey: "xai", CompatibilityMode: "openai"},
@@ -44,7 +44,7 @@ func TestHubGenerateContract(t *testing.T) {
 		HTTPClient: client,
 	})
 	if err != nil {
-		t.Fatalf("new hub: %v", err)
+		t.Fatalf("new kit: %v", err)
 	}
 
 	baseInput := GenerateInput{
@@ -65,7 +65,7 @@ func TestHubGenerateContract(t *testing.T) {
 				},
 			}
 		}
-		output, err := hub.Generate(context.Background(), input)
+		output, err := kit.Generate(context.Background(), input)
 		if err != nil {
 			t.Fatalf("generate %s: %v", provider, err)
 		}

@@ -44,7 +44,7 @@ func (x *xaiAdapter) Generate(ctx context.Context, in GenerateInput) (GenerateOu
 }
 
 func (x *xaiAdapter) GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error) {
-	return ImageGenerateOutput{}, &HubError{
+	return ImageGenerateOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "xAI image generation is not supported",
 		Provider: ProviderXAI,
@@ -52,7 +52,7 @@ func (x *xaiAdapter) GenerateImage(ctx context.Context, in ImageGenerateInput) (
 }
 
 func (x *xaiAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error) {
-	return MeshGenerateOutput{}, &HubError{
+	return MeshGenerateOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "xAI mesh generation is not supported",
 		Provider: ProviderXAI,

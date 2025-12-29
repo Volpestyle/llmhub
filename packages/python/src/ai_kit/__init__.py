@@ -1,4 +1,4 @@
-from .hub import Hub, HubConfig
+from .hub import Kit, KitConfig
 from .registry import ModelRegistry
 from .router import ModelRouter
 from .types import (
@@ -35,8 +35,8 @@ from .providers import (
 from .http_asgi import create_asgi_app
 
 __all__ = [
-    "Hub",
-    "HubConfig",
+    "Kit",
+    "KitConfig",
     "ModelRegistry",
     "ModelRouter",
     "CostBreakdown",

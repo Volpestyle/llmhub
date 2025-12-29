@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from .openai import OpenAIAdapter, OpenAIConfig
-from ..errors import ErrorKind, HubErrorPayload, InferenceKitError
+from ..errors import ErrorKind, KitErrorPayload, InferenceKitError
 from ..types import ImageGenerateInput, ImageGenerateOutput
 from ..types import Provider
 
@@ -31,7 +31,7 @@ class XAIAdapter(OpenAIAdapter):
 
     def generate_image(self, input: ImageGenerateInput) -> ImageGenerateOutput:
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.UNSUPPORTED,
                 message="xAI image generation is not supported",
                 provider=self.provider,
@@ -40,7 +40,7 @@ class XAIAdapter(OpenAIAdapter):
 
     def generate_mesh(self, input: "MeshGenerateInput"):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.UNSUPPORTED,
                 message="xAI mesh generation is not supported",
                 provider=self.provider,

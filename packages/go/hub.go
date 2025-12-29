@@ -55,14 +55,14 @@ type adapter interface {
 
 type adapterFactory func(provider Provider, entitlement *EntitlementContext) (adapter, error)
 
-type Hub struct {
+type Kit struct {
 	adapters map[Provider]adapter
 	registry *modelRegistry
 	factory  adapterFactory
 	keyPools map[Provider]*keyPool
 }
 
-func New(config Config) (*Hub, error) {
+func New(config Config) (*Kit, error) {
 	adapters := make(map[Provider]adapter)
 	keyPools := make(map[Provider]*keyPool)
 	client := config.HTTPClient
@@ -122,7 +122,7 @@ func New(config Config) (*Hub, error) {
 	}
 	factory := newAdapterFactory(config, client, adapters)
 	registry := newModelRegistry(adapters, ttl, factory)
-	return &Hub{
+	return &Kit{
 		adapters: adapters,
 		registry: registry,
 		factory:  factory,
@@ -130,15 +130,15 @@ func New(config Config) (*Hub, error) {
 	}, nil
 }
 
-func (h *Hub) ListModels(ctx context.Context, opts *ListModelsOptions) ([]ModelMetadata, error) {
+func (h *Kit) ListModels(ctx context.Context, opts *ListModelsOptions) ([]ModelMetadata, error) {
 	return h.registry.List(ctx, opts)
 }
 
-func (h *Hub) ListModelRecords(ctx context.Context, opts *ListModelsOptions) ([]ModelRecord, error) {
+func (h *Kit) ListModelRecords(ctx context.Context, opts *ListModelsOptions) ([]ModelRecord, error) {
 	return h.registry.ListRecords(ctx, opts)
 }
 
-func (h *Hub) Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error) {
+func (h *Kit) Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error) {
 	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
 		return h.GenerateWithContext(ctx, entitlement, in)
 	}
@@ -154,7 +154,7 @@ func (h *Hub) Generate(ctx context.Context, in GenerateInput) (GenerateOutput, e
 	return attachCost(in, output), nil
 }
 
-func (h *Hub) GenerateWithContext(ctx context.Context, entitlement *EntitlementContext, in GenerateInput) (GenerateOutput, error) {
+func (h *Kit) GenerateWithContext(ctx context.Context, entitlement *EntitlementContext, in GenerateInput) (GenerateOutput, error) {
 	adapter, err := h.factory(in.Provider, entitlement)
 	if err != nil {
 		return GenerateOutput{}, err
@@ -166,7 +166,7 @@ func (h *Hub) GenerateWithContext(ctx context.Context, entitlement *EntitlementC
 	return attachCost(in, output), err
 }
 
-func (h *Hub) GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error) {
+func (h *Kit) GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error) {
 	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
 		return h.GenerateImageWithContext(ctx, entitlement, in)
 	}
@@ -182,7 +182,7 @@ func (h *Hub) GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGe
 	return output, nil
 }
 
-func (h *Hub) GenerateImageWithContext(ctx context.Context, entitlement *EntitlementContext, in ImageGenerateInput) (ImageGenerateOutput, error) {
+func (h *Kit) GenerateImageWithContext(ctx context.Context, entitlement *EntitlementContext, in ImageGenerateInput) (ImageGenerateOutput, error) {
 	adapter, err := h.factory(in.Provider, entitlement)
 	if err != nil {
 		return ImageGenerateOutput{}, err
@@ -194,7 +194,7 @@ func (h *Hub) GenerateImageWithContext(ctx context.Context, entitlement *Entitle
 	return output, err
 }
 
-func (h *Hub) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error) {
+func (h *Kit) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error) {
 	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
 		return h.GenerateMeshWithContext(ctx, entitlement, in)
 	}
@@ -210,7 +210,7 @@ func (h *Hub) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGener
 	return output, nil
 }
 
-func (h *Hub) GenerateMeshWithContext(ctx context.Context, entitlement *EntitlementContext, in MeshGenerateInput) (MeshGenerateOutput, error) {
+func (h *Kit) GenerateMeshWithContext(ctx context.Context, entitlement *EntitlementContext, in MeshGenerateInput) (MeshGenerateOutput, error) {
 	adapter, err := h.factory(in.Provider, entitlement)
 	if err != nil {
 		return MeshGenerateOutput{}, err
@@ -222,7 +222,7 @@ func (h *Hub) GenerateMeshWithContext(ctx context.Context, entitlement *Entitlem
 	return output, err
 }
 
-func (h *Hub) StreamGenerate(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
+func (h *Kit) StreamGenerate(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
 	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
 		return h.StreamGenerateWithContext(ctx, entitlement, in)
 	}
@@ -237,7 +237,7 @@ func (h *Hub) StreamGenerate(ctx context.Context, in GenerateInput) (<-chan Stre
 	return attachCostToStream(in.Provider, in.Model, stream), nil
 }
 
-func (h *Hub) StreamGenerateWithContext(ctx context.Context, entitlement *EntitlementContext, in GenerateInput) (<-chan StreamChunk, error) {
+func (h *Kit) StreamGenerateWithContext(ctx context.Context, entitlement *EntitlementContext, in GenerateInput) (<-chan StreamChunk, error) {
 	adapter, err := h.factory(in.Provider, entitlement)
 	if err != nil {
 		return nil, err
@@ -249,7 +249,7 @@ func (h *Hub) StreamGenerateWithContext(ctx context.Context, entitlement *Entitl
 	return attachCostToStream(in.Provider, in.Model, stream), nil
 }
 
-func (h *Hub) entitlementForProvider(provider Provider) *EntitlementContext {
+func (h *Kit) entitlementForProvider(provider Provider) *EntitlementContext {
 	pool := h.keyPools[provider]
 	if pool == nil {
 		return nil

@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-type mockHub struct {
+type mockKit struct {
 	modelsResp   []ModelMetadata
 	generateResp GenerateOutput
 	imageResp    ImageGenerateOutput
@@ -19,24 +19,24 @@ type mockHub struct {
 	lastListOpts *ListModelsOptions
 }
 
-func (m *mockHub) ListModels(ctx context.Context, opts *ListModelsOptions) ([]ModelMetadata, error) {
+func (m *mockKit) ListModels(ctx context.Context, opts *ListModelsOptions) ([]ModelMetadata, error) {
 	m.lastListOpts = opts
 	return m.modelsResp, nil
 }
 
-func (m *mockHub) Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error) {
+func (m *mockKit) Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error) {
 	return m.generateResp, nil
 }
 
-func (m *mockHub) GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error) {
+func (m *mockKit) GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error) {
 	return m.imageResp, nil
 }
 
-func (m *mockHub) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error) {
+func (m *mockKit) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error) {
 	return m.meshResp, nil
 }
 
-func (m *mockHub) StreamGenerate(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
+func (m *mockKit) StreamGenerate(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
 	ch := make(chan StreamChunk)
 	go func() {
 		defer close(ch)
@@ -48,12 +48,12 @@ func (m *mockHub) StreamGenerate(ctx context.Context, in GenerateInput) (<-chan 
 }
 
 func TestModelsHandlerReturnsJSON(t *testing.T) {
-	hub := &mockHub{
+	kit := &mockKit{
 		modelsResp: []ModelMetadata{{ID: "test", Provider: ProviderOpenAI}},
 	}
 	req := httptest.NewRequest(http.MethodGet, "/provider-models?providers=openai", nil)
 	rec := httptest.NewRecorder()
-	ModelsHandler(hub, nil)(rec, req)
+	ModelsHandler(kit, nil)(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
@@ -65,23 +65,23 @@ func TestModelsHandlerReturnsJSON(t *testing.T) {
 }
 
 func TestModelsHandlerParsesRefreshQuery(t *testing.T) {
-	hub := &mockHub{}
+	kit := &mockKit{}
 	req := httptest.NewRequest(http.MethodGet, "/provider-models?refresh=true", nil)
 	rec := httptest.NewRecorder()
-	ModelsHandler(hub, nil)(rec, req)
-	if hub.lastListOpts == nil || !hub.lastListOpts.Refresh {
-		t.Fatalf("expected refresh flag to be forwarded: %+v", hub.lastListOpts)
+	ModelsHandler(kit, nil)(rec, req)
+	if kit.lastListOpts == nil || !kit.lastListOpts.Refresh {
+		t.Fatalf("expected refresh flag to be forwarded: %+v", kit.lastListOpts)
 	}
 }
 
 func TestGenerateHandlerReturnsOutput(t *testing.T) {
-	hub := &mockHub{
+	kit := &mockKit{
 		generateResp: GenerateOutput{Text: "ok"},
 	}
 	body := bytes.NewBufferString(`{"provider":"openai","model":"gpt","messages":[]}`)
 	req := httptest.NewRequest(http.MethodPost, "/generate", body)
 	rec := httptest.NewRecorder()
-	GenerateHandler(hub)(rec, req)
+	GenerateHandler(kit)(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
@@ -93,7 +93,7 @@ func TestGenerateHandlerReturnsOutput(t *testing.T) {
 }
 
 func TestGenerateSSEHandlerStreams(t *testing.T) {
-	hub := &mockHub{
+	kit := &mockKit{
 		streamChunks: []StreamChunk{
 			{Type: StreamChunkDelta, TextDelta: "hel"},
 			{Type: StreamChunkDelta, TextDelta: "lo"},
@@ -102,7 +102,7 @@ func TestGenerateSSEHandlerStreams(t *testing.T) {
 	body := bytes.NewBufferString(`{"provider":"openai","model":"gpt","messages":[]}`)
 	req := httptest.NewRequest(http.MethodPost, "/generate/stream", body)
 	rec := httptest.NewRecorder()
-	GenerateSSEHandler(hub)(rec, req)
+	GenerateSSEHandler(kit)(rec, req)
 	result := rec.Body.String()
 	if status := rec.Code; status != http.StatusOK {
 		t.Fatalf("expected 200, got %d", status)

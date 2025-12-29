@@ -9,11 +9,11 @@ python -m pip install -e packages/python
 ```
 ```py
 import os
-from ai_kit import Hub, HubConfig, GenerateInput, Message, ContentPart
+from ai_kit import Kit, KitConfig, GenerateInput, Message, ContentPart
 from ai_kit.providers import OpenAIConfig
 
-kit = Hub(
-    HubConfig(
+kit = Kit(
+    KitConfig(
         providers={
             "openai": OpenAIConfig(api_key=os.environ.get("OPENAI_API_KEY", ""))
         }

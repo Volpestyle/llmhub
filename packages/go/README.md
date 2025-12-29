@@ -1,6 +1,6 @@
 # ai-kit (Go)
 
-Provider-agnostic model registry and inference adapter for Go. Includes a Hub, model router,
+Provider-agnostic model registry and inference adapter for Go. Includes a Kit, model router,
 SSE streaming, and HTTP handlers for a small REST surface.
 
 ## Quickstart

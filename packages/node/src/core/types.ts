@@ -303,7 +303,7 @@ export enum ErrorKind {
   Timeout = "timeout",
 }
 
-export interface HubErrorPayload {
+export interface KitErrorPayload {
   kind: ErrorKind;
   message: string;
   provider?: Provider;
@@ -360,7 +360,7 @@ export type ProviderConfigs = {
 export type AnyProviderConfig =
   ProviderConfigs[keyof ProviderConfigs];
 
-export interface HubConfig {
+export interface KitConfig {
   providers: ProviderMap<AnyProviderConfig>;
   httpClient?: FetchLike;
   registry?: {
@@ -368,7 +368,7 @@ export interface HubConfig {
   };
 }
 
-export interface Hub {
+export interface Kit {
   listModels(params?: ListModelsParams): Promise<ModelMetadata[]>;
   listModelRecords(params?: ListModelsParams): Promise<ModelRecord[]>;
   generate(input: GenerateInput): Promise<GenerateOutput>;

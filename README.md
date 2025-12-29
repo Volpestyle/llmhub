@@ -20,9 +20,9 @@ pnpm install
 pnpm --filter @volpestyle/ai-kit-node build
 ```
 ```ts
-import { createHub, Provider } from "@volpestyle/ai-kit-node";
+import { createKit, Provider } from "@volpestyle/ai-kit-node";
 
-const kit = createHub({
+const kit = createKit({
   providers: {
     [Provider.OpenAI]: { apiKey: process.env.OPENAI_API_KEY ?? "" },
   },
@@ -85,11 +85,11 @@ python -m pip install -e packages/python
 ```
 ```py
 import os
-from ai_kit import Hub, HubConfig, GenerateInput, Message, ContentPart
+from ai_kit import Kit, KitConfig, GenerateInput, Message, ContentPart
 from ai_kit.providers import OpenAIConfig
 
-kit = Hub(
-    HubConfig(
+kit = Kit(
+    KitConfig(
         providers={
             "openai": OpenAIConfig(api_key=os.environ.get("OPENAI_API_KEY", ""))
         }
@@ -129,12 +129,12 @@ const output = await kit.generate({
 ### Stream SSE for progressive UI rendering (Node)
 ```ts
 import express from "express";
-import { createHub, httpHandlers, Provider } from "@volpestyle/ai-kit-node";
+import { createKit, httpHandlers, Provider } from "@volpestyle/ai-kit-node";
 
 const app = express();
 app.use(express.json());
 
-const kit = createHub({
+const kit = createKit({
   providers: {
     [Provider.OpenAI]: { apiKey: process.env.OPENAI_API_KEY ?? "" },
   },

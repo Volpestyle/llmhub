@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type HubAPI interface {
+type KitAPI interface {
 	ListModels(ctx context.Context, opts *ListModelsOptions) ([]ModelMetadata, error)
 	Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error)
 	GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error)
@@ -20,7 +20,7 @@ type ModelsHandlerOptions struct {
 	Refresh bool
 }
 
-func ModelsHandler(h HubAPI, opts *ModelsHandlerOptions) http.HandlerFunc {
+func ModelsHandler(h KitAPI, opts *ModelsHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
@@ -42,7 +42,7 @@ func ModelsHandler(h HubAPI, opts *ModelsHandlerOptions) http.HandlerFunc {
 	}
 }
 
-func GenerateHandler(h HubAPI) http.HandlerFunc {
+func GenerateHandler(h KitAPI) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input GenerateInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -58,7 +58,7 @@ func GenerateHandler(h HubAPI) http.HandlerFunc {
 	}
 }
 
-func ImageHandler(h HubAPI) http.HandlerFunc {
+func ImageHandler(h KitAPI) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input ImageGenerateInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -74,7 +74,7 @@ func ImageHandler(h HubAPI) http.HandlerFunc {
 	}
 }
 
-func MeshHandler(h HubAPI) http.HandlerFunc {
+func MeshHandler(h KitAPI) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input MeshGenerateInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -90,7 +90,7 @@ func MeshHandler(h HubAPI) http.HandlerFunc {
 	}
 }
 
-func GenerateSSEHandler(h HubAPI) http.HandlerFunc {
+func GenerateSSEHandler(h KitAPI) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input GenerateInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -178,10 +178,10 @@ func writeError(w http.ResponseWriter, err error) {
 			Message: err.Error(),
 		},
 	}
-	if hubErr, ok := err.(*HubError); ok {
-		resp.Error.Kind = string(hubErr.Kind)
-		resp.Error.Message = hubErr.Message
-		switch hubErr.Kind {
+	if kitErr, ok := err.(*KitError); ok {
+		resp.Error.Kind = string(kitErr.Kind)
+		resp.Error.Message = kitErr.Message
+		switch kitErr.Kind {
 		case ErrorValidation:
 			status = http.StatusBadRequest
 		case ErrorUnsupported:

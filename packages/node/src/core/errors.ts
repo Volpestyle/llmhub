@@ -1,4 +1,4 @@
-import { ErrorKind, HubErrorPayload, Provider } from "./types.js";
+import { ErrorKind, KitErrorPayload, Provider } from "./types.js";
 
 export class InferenceKitError extends Error {
   public readonly kind: ErrorKind;
@@ -8,7 +8,7 @@ export class InferenceKitError extends Error {
   public readonly requestId?: string;
   public readonly cause?: unknown;
 
-  constructor(payload: HubErrorPayload) {
+  constructor(payload: KitErrorPayload) {
     super(payload.message);
     this.name = "InferenceKitError";
     this.kind = payload.kind;
@@ -20,7 +20,7 @@ export class InferenceKitError extends Error {
   }
 }
 
-export function toHubError(err: unknown): InferenceKitError {
+export function toKitError(err: unknown): InferenceKitError {
   if (err instanceof InferenceKitError) {
     return err;
   }
@@ -33,7 +33,7 @@ export function toHubError(err: unknown): InferenceKitError {
   });
 }
 
-export function ensureHubError(
+export function ensureKitError(
   provider: Provider,
   message: string,
   upstreamStatus?: number,

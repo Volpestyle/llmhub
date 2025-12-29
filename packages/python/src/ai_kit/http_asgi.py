@@ -4,14 +4,14 @@ import json
 from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional
 from urllib.parse import parse_qs
 
-from .errors import ErrorKind, HubErrorPayload, InferenceKitError, to_hub_error
-from .hub import Hub
+from .errors import ErrorKind, KitErrorPayload, InferenceKitError, to_kit_error
+from .hub import Kit
 from .types import GenerateInput, ImageGenerateInput, MeshGenerateInput, as_json_dict
 
 ASGIApp = Callable[[Dict[str, Any], Callable[..., Awaitable[Dict[str, Any]]], Callable[..., Awaitable[None]]], Awaitable[None]]
 
 
-def create_asgi_app(hub: Hub, base_path: str = "") -> ASGIApp:
+def create_asgi_app(kit: Kit, base_path: str = "") -> ASGIApp:
     base = _normalize_base_path(base_path)
 
     async def app(scope: Dict[str, Any], receive, send) -> None:
@@ -31,31 +31,31 @@ def create_asgi_app(hub: Hub, base_path: str = "") -> ASGIApp:
             if method != "GET":
                 await _respond_text(send, 405, "method not allowed")
                 return
-            await _handle_models(hub, scope, send)
+            await _handle_models(kit, scope, send)
             return
         if path == "/generate":
             if method != "POST":
                 await _respond_text(send, 405, "method not allowed")
                 return
-            await _handle_generate(hub, receive, send)
+            await _handle_generate(kit, receive, send)
             return
         if path == "/image":
             if method != "POST":
                 await _respond_text(send, 405, "method not allowed")
                 return
-            await _handle_image(hub, receive, send)
+            await _handle_image(kit, receive, send)
             return
         if path == "/mesh":
             if method != "POST":
                 await _respond_text(send, 405, "method not allowed")
                 return
-            await _handle_mesh(hub, receive, send)
+            await _handle_mesh(kit, receive, send)
             return
         if path == "/generate/stream":
             if method != "POST":
                 await _respond_text(send, 405, "method not allowed")
                 return
-            await _handle_stream(hub, receive, send)
+            await _handle_stream(kit, receive, send)
             return
 
         await _respond_text(send, 404, "not found")
@@ -72,69 +72,69 @@ def _normalize_base_path(value: str) -> str:
     return base
 
 
-async def _handle_models(hub: Hub, scope: Dict[str, Any], send) -> None:
+async def _handle_models(kit: Kit, scope: Dict[str, Any], send) -> None:
     try:
         query = _parse_query(scope)
         providers = _parse_providers(_first_query_value(query, "providers"))
         refresh = _should_refresh(query.get("refresh", []))
-        models = hub.list_models(providers=providers, refresh=refresh)
+        models = kit.list_models(providers=providers, refresh=refresh)
         await _respond_json(send, 200, as_json_dict(models))
     except Exception as err:
         await _send_json_error(send, err)
 
 
-async def _handle_generate(hub: Hub, receive, send) -> None:
+async def _handle_generate(kit: Kit, receive, send) -> None:
     try:
         payload = await _read_json(receive)
         input_data = _normalize_generate_input(payload)
-        output = hub.generate(input_data)
+        output = kit.generate(input_data)
         await _respond_json(send, 200, as_json_dict(output))
     except Exception as err:
         await _send_json_error(send, err)
 
 
-async def _handle_image(hub: Hub, receive, send) -> None:
+async def _handle_image(kit: Kit, receive, send) -> None:
     try:
         payload = await _read_json(receive)
         input_data = _normalize_image_input(payload)
-        output = hub.generate_image(input_data)
+        output = kit.generate_image(input_data)
         await _respond_json(send, 200, as_json_dict(output))
     except Exception as err:
         await _send_json_error(send, err)
 
 
-async def _handle_mesh(hub: Hub, receive, send) -> None:
+async def _handle_mesh(kit: Kit, receive, send) -> None:
     try:
         payload = await _read_json(receive)
         input_data = _normalize_mesh_input(payload)
-        output = hub.generate_mesh(input_data)
+        output = kit.generate_mesh(input_data)
         await _respond_json(send, 200, as_json_dict(output))
     except Exception as err:
         await _send_json_error(send, err)
 
 
-async def _handle_stream(hub: Hub, receive, send) -> None:
+async def _handle_stream(kit: Kit, receive, send) -> None:
     started = False
     try:
         payload = await _read_json(receive)
         input_data = _normalize_generate_input(payload, force_stream=True)
         await _start_sse(send)
         started = True
-        for chunk in hub.stream_generate(input_data):
+        for chunk in kit.stream_generate(input_data):
             await _send_sse_event(send, "chunk", as_json_dict(chunk), more_body=True)
         await _send_sse_event(send, "done", {"ok": True}, more_body=False)
     except Exception as err:
-        hub_err = to_hub_error(err)
+        kit_err = to_kit_error(err)
         if not started:
-            await _send_json_error(send, hub_err)
+            await _send_json_error(send, kit_err)
             return
         await _send_sse_event(
             send,
             "error",
             {
-                "kind": hub_err.kind.value,
-                "message": hub_err.message,
-                "requestId": hub_err.requestId,
+                "kind": kit_err.kind.value,
+                "message": kit_err.message,
+                "requestId": kit_err.requestId,
             },
             more_body=False,
         )
@@ -156,13 +156,13 @@ async def _read_json(receive) -> Any:
     body = await _read_body(receive)
     if not body:
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="Body must be valid JSON")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="Body must be valid JSON")
         )
     try:
         return json.loads(body.decode("utf-8"))
     except json.JSONDecodeError as exc:
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="Body must be valid JSON")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="Body must be valid JSON")
         ) from exc
 
 
@@ -197,7 +197,7 @@ def _should_refresh(values: Iterable[str]) -> bool:
 def _normalize_generate_input(payload: Any, force_stream: bool = False) -> GenerateInput:
     if not isinstance(payload, dict):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.VALIDATION,
                 message="Request body must be a GenerateInput object",
             )
@@ -207,15 +207,15 @@ def _normalize_generate_input(payload: Any, force_stream: bool = False) -> Gener
     messages = payload.get("messages")
     if not isinstance(provider, str):
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="provider is required and must be a string")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="provider is required and must be a string")
         )
     if not isinstance(model, str):
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="model is required and must be a string")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="model is required and must be a string")
         )
     if not isinstance(messages, list):
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="messages is required and must be an array")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="messages is required and must be an array")
         )
     return GenerateInput(
         provider=provider,
@@ -235,7 +235,7 @@ def _normalize_generate_input(payload: Any, force_stream: bool = False) -> Gener
 def _normalize_image_input(payload: Any) -> ImageGenerateInput:
     if not isinstance(payload, dict):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.VALIDATION,
                 message="Request body must be an ImageGenerateInput object",
             )
@@ -245,15 +245,15 @@ def _normalize_image_input(payload: Any) -> ImageGenerateInput:
     prompt = payload.get("prompt")
     if not isinstance(provider, str):
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="provider is required and must be a string")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="provider is required and must be a string")
         )
     if not isinstance(model, str):
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="model is required and must be a string")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="model is required and must be a string")
         )
     if not isinstance(prompt, str):
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="prompt is required and must be a string")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="prompt is required and must be a string")
         )
     return ImageGenerateInput(
         provider=provider,
@@ -267,7 +267,7 @@ def _normalize_image_input(payload: Any) -> ImageGenerateInput:
 def _normalize_mesh_input(payload: Any) -> MeshGenerateInput:
     if not isinstance(payload, dict):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.VALIDATION,
                 message="Request body must be a MeshGenerateInput object",
             )
@@ -277,15 +277,15 @@ def _normalize_mesh_input(payload: Any) -> MeshGenerateInput:
     prompt = payload.get("prompt")
     if not isinstance(provider, str):
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="provider is required and must be a string")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="provider is required and must be a string")
         )
     if not isinstance(model, str):
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="model is required and must be a string")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="model is required and must be a string")
         )
     if not isinstance(prompt, str):
         raise InferenceKitError(
-            HubErrorPayload(kind=ErrorKind.VALIDATION, message="prompt is required and must be a string")
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="prompt is required and must be a string")
         )
     return MeshGenerateInput(
         provider=provider,
@@ -345,9 +345,9 @@ async def _send_sse_event(send, event: str, data: Any, more_body: bool) -> None:
 
 
 async def _send_json_error(send, err: Exception) -> None:
-    hub_err = to_hub_error(err)
-    status = _map_status(hub_err)
-    payload = {"error": {"kind": hub_err.kind.value, "message": hub_err.message}}
+    kit_err = to_kit_error(err)
+    status = _map_status(kit_err)
+    payload = {"error": {"kind": kit_err.kind.value, "message": kit_err.message}}
     await _respond_json(send, status, payload)
 
 

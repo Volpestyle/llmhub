@@ -201,7 +201,7 @@ func (r *modelRegistry) adapterFor(provider Provider, entitlement *EntitlementCo
 	if adapter, ok := r.adapters[provider]; ok {
 		return adapter, nil
 	}
-	return nil, &HubError{
+	return nil, &KitError{
 		Kind:     ErrorValidation,
 		Message:  "provider not configured",
 		Provider: provider,
@@ -315,12 +315,12 @@ func learnReason(err error) (string, bool) {
 	if err == nil {
 		return "", false
 	}
-	if hubErr, ok := err.(*HubError); ok {
-		if hubErr.Kind == ErrorProviderNotFound || hubErr.Kind == ErrorValidation {
-			return hubErr.Message, true
+	if kitErr, ok := err.(*KitError); ok {
+		if kitErr.Kind == ErrorProviderNotFound || kitErr.Kind == ErrorValidation {
+			return kitErr.Message, true
 		}
-		if hubErr.UpstreamStatus == 400 || hubErr.UpstreamStatus == 404 || hubErr.UpstreamStatus == 403 {
-			return hubErr.Message, true
+		if kitErr.UpstreamStatus == 400 || kitErr.UpstreamStatus == 404 || kitErr.UpstreamStatus == 403 {
+			return kitErr.Message, true
 		}
 	}
 	return "", false

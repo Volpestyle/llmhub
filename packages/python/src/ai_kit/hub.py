@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from typing import Dict
 
 from .catalog import CatalogAdapter, load_catalog_models
-from .errors import ErrorKind, HubErrorPayload, InferenceKitError, to_hub_error
+from .errors import ErrorKind, KitErrorPayload, InferenceKitError, to_kit_error
 from .entitlements import fingerprint_api_key
 from .pricing import estimate_cost
 from .registry import ModelRegistry
@@ -31,7 +31,7 @@ from .providers import (
 
 
 @dataclass
-class HubConfig:
+class KitConfig:
     providers: Dict[Provider, object]
     registry_ttl_seconds: int = 1800
 
@@ -49,12 +49,12 @@ class _KeyPool:
         return key
 
 
-class Hub:
-    def __init__(self, config: HubConfig) -> None:
+class Kit:
+    def __init__(self, config: KitConfig) -> None:
         catalog_models = load_catalog_models()
         if not config.providers and not catalog_models:
             raise InferenceKitError(
-                HubErrorPayload(
+                KitErrorPayload(
                     kind=ErrorKind.VALIDATION,
                     message="At least one provider configuration is required",
                 )
@@ -84,9 +84,9 @@ class Hub:
             output = adapter.generate(input)
             return _attach_cost(input, output)
         except Exception as err:
-            hub_err = to_hub_error(err)
-            self._registry.learn_model_unavailable(None, input.provider, input.model, hub_err)
-            raise hub_err
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(None, input.provider, input.model, kit_err)
+            raise kit_err
 
     def generate_with_context(
         self, entitlement: EntitlementContext | None, input: GenerateInput
@@ -96,9 +96,9 @@ class Hub:
             output = adapter.generate(input)
             return _attach_cost(input, output)
         except Exception as err:
-            hub_err = to_hub_error(err)
-            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, hub_err)
-            raise hub_err
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
+            raise kit_err
 
     def generate_image(self, input: ImageGenerateInput) -> ImageGenerateOutput:
         entitlement = self._entitlement_for_provider(input.provider)
@@ -107,7 +107,7 @@ class Hub:
         adapter = self._require_adapter(input.provider)
         if not hasattr(adapter, "generate_image"):
             raise InferenceKitError(
-                HubErrorPayload(
+                KitErrorPayload(
                     kind=ErrorKind.UNSUPPORTED,
                     message=f"Provider {input.provider} does not support image generation",
                 )
@@ -115,9 +115,9 @@ class Hub:
         try:
             return adapter.generate_image(input)
         except Exception as err:
-            hub_err = to_hub_error(err)
-            self._registry.learn_model_unavailable(None, input.provider, input.model, hub_err)
-            raise hub_err
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(None, input.provider, input.model, kit_err)
+            raise kit_err
 
     def generate_image_with_context(
         self, entitlement: EntitlementContext | None, input: ImageGenerateInput
@@ -125,7 +125,7 @@ class Hub:
         adapter = self._require_adapter(input.provider, entitlement)
         if not hasattr(adapter, "generate_image"):
             raise InferenceKitError(
-                HubErrorPayload(
+                KitErrorPayload(
                     kind=ErrorKind.UNSUPPORTED,
                     message=f"Provider {input.provider} does not support image generation",
                 )
@@ -133,9 +133,9 @@ class Hub:
         try:
             return adapter.generate_image(input)
         except Exception as err:
-            hub_err = to_hub_error(err)
-            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, hub_err)
-            raise hub_err
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
+            raise kit_err
 
     def generate_mesh(self, input: MeshGenerateInput) -> MeshGenerateOutput:
         entitlement = self._entitlement_for_provider(input.provider)
@@ -144,7 +144,7 @@ class Hub:
         adapter = self._require_adapter(input.provider)
         if not hasattr(adapter, "generate_mesh"):
             raise InferenceKitError(
-                HubErrorPayload(
+                KitErrorPayload(
                     kind=ErrorKind.UNSUPPORTED,
                     message=f"Provider {input.provider} does not support mesh generation",
                 )
@@ -152,9 +152,9 @@ class Hub:
         try:
             return adapter.generate_mesh(input)
         except Exception as err:
-            hub_err = to_hub_error(err)
-            self._registry.learn_model_unavailable(None, input.provider, input.model, hub_err)
-            raise hub_err
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(None, input.provider, input.model, kit_err)
+            raise kit_err
 
     def generate_mesh_with_context(
         self, entitlement: EntitlementContext | None, input: MeshGenerateInput
@@ -162,7 +162,7 @@ class Hub:
         adapter = self._require_adapter(input.provider, entitlement)
         if not hasattr(adapter, "generate_mesh"):
             raise InferenceKitError(
-                HubErrorPayload(
+                KitErrorPayload(
                     kind=ErrorKind.UNSUPPORTED,
                     message=f"Provider {input.provider} does not support mesh generation",
                 )
@@ -170,9 +170,9 @@ class Hub:
         try:
             return adapter.generate_mesh(input)
         except Exception as err:
-            hub_err = to_hub_error(err)
-            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, hub_err)
-            raise hub_err
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
+            raise kit_err
 
     def stream_generate(self, input: GenerateInput):
         entitlement = self._entitlement_for_provider(input.provider)
@@ -206,7 +206,7 @@ class Hub:
             keys = self._collect_keys(cfg)
             if not keys:
                 raise InferenceKitError(
-                    HubErrorPayload(
+                    KitErrorPayload(
                         kind=ErrorKind.VALIDATION,
                         message=f"Provider {provider} api key is required",
                     )
@@ -297,7 +297,7 @@ class Hub:
         adapter = self._adapter_factory(provider, entitlement)
         if not adapter:
             raise InferenceKitError(
-                HubErrorPayload(
+                KitErrorPayload(
                     kind=ErrorKind.VALIDATION,
                     message=f"Provider {provider} is not configured",
                 )

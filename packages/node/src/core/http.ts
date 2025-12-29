@@ -18,7 +18,7 @@ export async function httpRequest<T = unknown>(
   if (!fetchImpl) {
     throw new InferenceKitError({
       kind: ErrorKind.Unsupported,
-      message: "global fetch is not available; supply hubConfig.httpClient",
+      message: "global fetch is not available; supply kitConfig.httpClient",
       provider: options.provider,
     });
   }

@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
 import { describe, expect, it, vi } from "vitest";
 import { httpHandlers } from "../src/http/handlers.js";
-import { Provider, type Hub, type StreamChunk } from "../src/core/types.js";
+import { Provider, type Kit, type StreamChunk } from "../src/core/types.js";
 
 function createMockResponse() {
   return {
@@ -31,16 +31,16 @@ function createMockResponse() {
 
 describe("http handlers", () => {
   it("returns model list", async () => {
-    const hub = createHubMock({
+    const kit = createKitMock({
       listModels: vi.fn().mockResolvedValue([{ id: "x", provider: Provider.OpenAI }]),
     });
-    const handlers = httpHandlers(hub);
+    const handlers = httpHandlers(kit);
     const res = createMockResponse();
     await handlers.models()(
       { query: { providers: "openai,xai" } },
       res,
     );
-    expect(hub.listModels).toHaveBeenCalledWith({
+    expect(kit.listModels).toHaveBeenCalledWith({
       providers: [Provider.OpenAI, Provider.XAI],
     });
     expect(res.statusCode).toBe(200);
@@ -49,24 +49,24 @@ describe("http handlers", () => {
 
   it("passes refresh flag from query params", async () => {
     const listModels = vi.fn().mockResolvedValue([]);
-    const hub = createHubMock({ listModels });
-    const handlers = httpHandlers(hub);
+    const kit = createKitMock({ listModels });
+    const handlers = httpHandlers(kit);
     const res = createMockResponse();
     await handlers.models()({ query: { refresh: "true" } }, res);
     expect(listModels).toHaveBeenCalledWith({ refresh: true });
   });
 
   it("invokes generate handler", async () => {
-    const hub = createHubMock({
+    const kit = createKitMock({
       generate: vi.fn().mockResolvedValue({ text: "ok" }),
     });
-    const handlers = httpHandlers(hub);
+    const handlers = httpHandlers(kit);
     const res = createMockResponse();
     await handlers.generate()(
       { body: { provider: Provider.OpenAI, model: "gpt", messages: [] } },
       res,
     );
-    expect(hub.generate).toHaveBeenCalled();
+    expect(kit.generate).toHaveBeenCalled();
     expect(res.jsonPayload).toEqual({ text: "ok" });
   });
 
@@ -76,10 +76,10 @@ describe("http handlers", () => {
       { type: "delta", textDelta: "lo" },
       { type: "message_end", finishReason: "stop" },
     ];
-    const hub = createHubMock({
+    const kit = createKitMock({
       streamGenerate: vi.fn().mockReturnValue(streamFrom(chunks)),
     });
-    const handlers = httpHandlers(hub);
+    const handlers = httpHandlers(kit);
     const res = createMockResponse();
     await handlers.generateSSE()(
       { method: "POST", body: { provider: Provider.OpenAI, model: "gpt", messages: [] } },
@@ -91,7 +91,7 @@ describe("http handlers", () => {
   });
 });
 
-function createHubMock(overrides: Partial<Hub>): Hub {
+function createKitMock(overrides: Partial<Kit>): Kit {
   return {
     listModels: vi.fn().mockResolvedValue([]),
     listModelRecords: vi.fn().mockResolvedValue([]),

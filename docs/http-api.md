@@ -1,7 +1,7 @@
 # HTTP API
 
 The repo ships an OpenAPI reference in `servers/openapi.yaml`. Node and Go expose helpers for
-wiring HTTP endpoints to a Hub instance, and Python ships an ASGI adapter for the same surface.
+wiring HTTP endpoints to a Kit instance, and Python ships an ASGI adapter for the same surface.
 For SSE, the ASGI adapter is a good fit because it supports native streaming.
 
 ## Suggested endpoints
@@ -51,11 +51,11 @@ the same endpoints listed above and supports SSE streaming.
 ```py
 import os
 from fastapi import FastAPI
-from ai_kit import Hub, HubConfig, create_asgi_app
+from ai_kit import Kit, KitConfig, create_asgi_app
 from ai_kit.providers import OpenAIConfig
 
-kit = Hub(
-    HubConfig(
+kit = Kit(
+    KitConfig(
         providers={
             "openai": OpenAIConfig(api_key=os.environ.get("OPENAI_API_KEY", "")),
         }

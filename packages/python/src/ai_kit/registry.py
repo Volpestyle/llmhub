@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from .entitlements import fingerprint_api_key
-from .errors import ErrorKind, HubErrorPayload, InferenceKitError
+from .errors import ErrorKind, KitErrorPayload, InferenceKitError
 from .pricing import apply_curated_metadata
 from .types import (
     EntitlementContext,
@@ -94,7 +94,7 @@ class ModelRegistry:
         resolved = self._resolve_providers(providers, entitlement)
         if not resolved:
             raise InferenceKitError(
-                HubErrorPayload(
+                KitErrorPayload(
                     kind=ErrorKind.VALIDATION,
                     message="No providers configured",
                 )
@@ -144,7 +144,7 @@ class ModelRegistry:
         adapter = self._adapter_for(provider, entitlement)
         if not adapter:
             raise InferenceKitError(
-                HubErrorPayload(
+                KitErrorPayload(
                     kind=ErrorKind.VALIDATION,
                     message=f"Provider {provider} is not configured",
                 )

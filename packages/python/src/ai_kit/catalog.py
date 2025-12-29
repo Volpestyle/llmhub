@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .errors import ErrorKind, HubErrorPayload, InferenceKitError
+from .errors import ErrorKind, KitErrorPayload, InferenceKitError
 from .types import ModelCapabilities, ModelMetadata, TokenPrices
 
 _catalog_cache: Optional[List[ModelMetadata]] = None
@@ -86,7 +86,7 @@ class CatalogAdapter:
 
     def generate(self, *_args, **_kwargs):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.UNSUPPORTED,
                 message="Catalog provider does not support generate",
                 provider="catalog",
@@ -95,7 +95,7 @@ class CatalogAdapter:
 
     def generate_image(self, *_args, **_kwargs):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.UNSUPPORTED,
                 message="Catalog provider does not support image generation",
                 provider="catalog",
@@ -104,7 +104,7 @@ class CatalogAdapter:
 
     def generate_mesh(self, *_args, **_kwargs):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.UNSUPPORTED,
                 message="Catalog provider does not support mesh generation",
                 provider="catalog",
@@ -113,7 +113,7 @@ class CatalogAdapter:
 
     def stream_generate(self, *_args, **_kwargs):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.UNSUPPORTED,
                 message="Catalog provider does not support streaming",
                 provider="catalog",

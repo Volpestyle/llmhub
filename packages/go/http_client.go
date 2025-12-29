@@ -25,7 +25,7 @@ func doRequest(ctx context.Context, client *http.Client, req *http.Request, prov
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		return nil, &HubError{
+		return nil, &KitError{
 			Kind:           classifyStatus(resp.StatusCode),
 			Message:        string(body),
 			Provider:       provider,

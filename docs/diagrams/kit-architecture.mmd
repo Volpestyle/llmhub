@@ -1,13 +1,13 @@
 flowchart TD
-  App[App / API Server] --> Hub[Inference Hub]
-  Hub -->|listModels| Registry[Model Registry]
-  Hub -->|generate + stream| Adapters[Provider Adapters]
+  App[App / API Server] --> Kit[Inference Kit]
+  Kit -->|listModels| Registry[Model Registry]
+  Kit -->|generate + stream| Adapters[Provider Adapters]
   Registry -->|listModels| Adapters
   Registry --> Curated["Curated metadata: pricing, capabilities"]
-  Hub --> Router[Model Router]
+  Kit --> Router[Model Router]
   Router -->|resolve| Registry
-  Hub --> Entitlements[Key pool + entitlements]
-  Hub --> Pricing[Cost estimation]
+  Kit --> Entitlements[Key pool + entitlements]
+  Kit --> Pricing[Cost estimation]
   Adapters --> OpenAI[OpenAI]
   Adapters --> Anthropic[Anthropic]
   Adapters --> Google[Google Gemini]

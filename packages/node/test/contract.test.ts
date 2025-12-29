@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
 import { describe, expect, it } from "vitest";
 import {
-  createHub,
+  createKit,
   Provider,
   GenerateInput,
 } from "../src/index.js";
@@ -39,7 +39,7 @@ const fetchImpl: FetchLike = async (input, init) => {
   throw new Error(`No mock response for ${url}`);
 };
 
-const hub = createHub({
+const kit = createKit({
   providers: {
     [Provider.OpenAI]: { apiKey: "test-openai-key" },
     [Provider.Anthropic]: { apiKey: "test-anthropic-key" },
@@ -62,7 +62,7 @@ describe("contract generate normalization", () => {
     Provider.XAI,
   ]) {
     it(`normalizes output for ${provider}`, async () => {
-      const output = await hub.generate({ ...input, provider });
+      const output = await kit.generate({ ...input, provider });
       expect(output.text).toBe(STANDARD_TEXT);
       expect(output.finishReason).toBeDefined();
     });

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
 
 from ..http import request_json, request_stream
-from ..errors import ErrorKind, HubErrorPayload, InferenceKitError
+from ..errors import ErrorKind, KitErrorPayload, InferenceKitError
 from ..sse import iter_sse_events
 from ..types import (
     GenerateInput,
@@ -84,7 +84,7 @@ class GeminiAdapter:
         inline = _extract_inline_image(payload)
         if not inline or not inline.get("data"):
             raise InferenceKitError(
-                HubErrorPayload(
+                KitErrorPayload(
                     kind=ErrorKind.UNKNOWN,
                     message="Gemini image response missing inline data",
                     provider=self.provider,
@@ -95,7 +95,7 @@ class GeminiAdapter:
 
     def generate_mesh(self, input: "MeshGenerateInput"):
         raise InferenceKitError(
-            HubErrorPayload(
+            KitErrorPayload(
                 kind=ErrorKind.UNSUPPORTED,
                 message="Gemini mesh generation is not supported",
                 provider=self.provider,

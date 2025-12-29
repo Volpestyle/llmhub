@@ -1,16 +1,16 @@
 sequenceDiagram
   participant Client
   participant HTTP as HTTP Handler
-  participant Hub
+  participant Kit
   participant Adapter
   participant Provider
 
   Client->>HTTP: POST /generate/stream
-  HTTP->>Hub: streamGenerate()
-  Hub->>Adapter: streamGenerate()
+  HTTP->>Kit: streamGenerate()
+  Kit->>Adapter: streamGenerate()
   Adapter->>Provider: stream=true request
   Provider-->>Adapter: SSE chunks
-  Adapter-->>Hub: StreamChunk
-  Hub-->>HTTP: StreamChunk
+  Adapter-->>Kit: StreamChunk
+  Kit-->>HTTP: StreamChunk
   HTTP-->>Client: event: chunk
   HTTP-->>Client: event: done

@@ -1,5 +1,5 @@
 import { AdapterMap, ProviderAdapter } from "../core/provider.js";
-import { InferenceKitError, toHubError } from "../core/errors.js";
+import { InferenceKitError, toKitError } from "../core/errors.js";
 import { fingerprintApiKey } from "../core/entitlements.js";
 import {
   EntitlementContext,
@@ -143,7 +143,7 @@ export class ModelRegistry {
       if (cached && cached.expiresAt > Date.now()) {
         return cached;
       }
-      throw toHubError(err);
+      throw toKitError(err);
     }
   }
 

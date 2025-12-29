@@ -107,7 +107,7 @@ func (g *googleAdapter) GenerateImage(ctx context.Context, in ImageGenerateInput
 	}
 	mime, data := extractGeminiInlineImage(resp)
 	if data == "" {
-		return ImageGenerateOutput{}, &HubError{
+		return ImageGenerateOutput{}, &KitError{
 			Kind:     ErrorUnknown,
 			Message:  "Gemini image response missing inline data",
 			Provider: ProviderGoogle,
@@ -121,7 +121,7 @@ func (g *googleAdapter) GenerateImage(ctx context.Context, in ImageGenerateInput
 }
 
 func (g *googleAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error) {
-	return MeshGenerateOutput{}, &HubError{
+	return MeshGenerateOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "Gemini mesh generation is not supported",
 		Provider: ProviderGoogle,

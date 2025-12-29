@@ -9,8 +9,8 @@ import {
   EntitlementContext,
   GenerateInput,
   GenerateOutput,
-  Hub,
-  HubConfig,
+  Kit,
+  KitConfig,
   ImageGenerateInput,
   ImageGenerateOutput,
   ListModelsParams,
@@ -21,7 +21,7 @@ import {
   StreamChunk,
 } from "./types.js";
 import { ErrorKind } from "./types.js";
-import { InferenceKitError, toHubError } from "./errors.js";
+import { InferenceKitError, toKitError } from "./errors.js";
 import { estimateCost } from "./pricing.js";
 
 class KeyPool {
@@ -55,7 +55,7 @@ function normalizeKeys(primary?: string, extras?: string[]): string[] {
   return keys;
 }
 
-class DefaultHub implements Hub {
+class DefaultKit implements Kit {
   constructor(
     private readonly adapters: AdapterMap,
     private readonly registry: ModelRegistry,
@@ -84,9 +84,9 @@ class DefaultHub implements Hub {
       const output = await adapter.generate({ ...input, stream: false });
       return attachCost(input, output);
     } catch (err) {
-      const hubErr = toHubError(err);
-      this.registry.learnModelUnavailable(undefined, input.provider, input.model, hubErr);
-      throw hubErr;
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(undefined, input.provider, input.model, kitErr);
+      throw kitErr;
     }
   }
 
@@ -99,9 +99,9 @@ class DefaultHub implements Hub {
       const output = await adapter.generate({ ...input, stream: false });
       return attachCost(input, output);
     } catch (err) {
-      const hubErr = toHubError(err);
-      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, hubErr);
-      throw hubErr;
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);
+      throw kitErr;
     }
   }
 
@@ -123,9 +123,9 @@ class DefaultHub implements Hub {
     try {
       return await adapter.generateImage(input);
     } catch (err) {
-      const hubErr = toHubError(err);
-      this.registry.learnModelUnavailable(undefined, input.provider, input.model, hubErr);
-      throw hubErr;
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(undefined, input.provider, input.model, kitErr);
+      throw kitErr;
     }
   }
 
@@ -147,9 +147,9 @@ class DefaultHub implements Hub {
     try {
       return await adapter.generateMesh(input);
     } catch (err) {
-      const hubErr = toHubError(err);
-      this.registry.learnModelUnavailable(undefined, input.provider, input.model, hubErr);
-      throw hubErr;
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(undefined, input.provider, input.model, kitErr);
+      throw kitErr;
     }
   }
 
@@ -187,9 +187,9 @@ class DefaultHub implements Hub {
     try {
       return await adapter.generateImage(input);
     } catch (err) {
-      const hubErr = toHubError(err);
-      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, hubErr);
-      throw hubErr;
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);
+      throw kitErr;
     }
   }
 
@@ -208,9 +208,9 @@ class DefaultHub implements Hub {
     try {
       return await adapter.generateMesh(input);
     } catch (err) {
-      const hubErr = toHubError(err);
-      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, hubErr);
-      throw hubErr;
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);
+      throw kitErr;
     }
   }
 
@@ -272,7 +272,7 @@ async function* attachCostToStream(
   }
 }
 
-export function createHub(config: HubConfig): Hub {
+export function createKit(config: KitConfig): Kit {
   if (!config.providers || Object.keys(config.providers).length === 0) {
     throw new InferenceKitError({
       kind: ErrorKind.Validation,
@@ -401,5 +401,5 @@ export function createHub(config: HubConfig): Hub {
     },
     adapterFactory,
   );
-  return new DefaultHub(adapters, registry, adapterFactory, keyPools);
+  return new DefaultKit(adapters, registry, adapterFactory, keyPools);
 }

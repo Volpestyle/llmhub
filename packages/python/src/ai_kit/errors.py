@@ -17,7 +17,7 @@ class ErrorKind(str, Enum):
 
 
 @dataclass
-class HubErrorPayload:
+class KitErrorPayload:
     kind: ErrorKind
     message: str
     provider: Optional[str] = None
@@ -28,7 +28,7 @@ class HubErrorPayload:
 
 
 class InferenceKitError(Exception):
-    def __init__(self, payload: HubErrorPayload):
+    def __init__(self, payload: KitErrorPayload):
         super().__init__(payload.message)
         self.kind = payload.kind
         self.provider = payload.provider
@@ -52,9 +52,9 @@ def classify_status(status: Optional[int]) -> ErrorKind:
     return ErrorKind.UNKNOWN
 
 
-def to_hub_error(err: Exception) -> InferenceKitError:
+def to_kit_error(err: Exception) -> InferenceKitError:
     if isinstance(err, InferenceKitError):
         return err
     return InferenceKitError(
-        HubErrorPayload(kind=ErrorKind.UNKNOWN, message=str(err), cause=err)
+        KitErrorPayload(kind=ErrorKind.UNKNOWN, message=str(err), cause=err)
     )

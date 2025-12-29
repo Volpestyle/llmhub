@@ -1,4 +1,4 @@
-import { Hub } from "../core/types.js";
+import { Kit } from "../core/types.js";
 import {
   GenerateInput,
   ImageGenerateInput,
@@ -6,7 +6,7 @@ import {
   MeshGenerateInput,
   Provider,
 } from "../core/types.js";
-import { toHubError, InferenceKitError } from "../core/errors.js";
+import { toKitError, InferenceKitError } from "../core/errors.js";
 import { ErrorKind } from "../core/types.js";
 
 export interface RequestLike {
@@ -34,14 +34,14 @@ export interface GenerateHandlerOptions {
   stream?: boolean;
 }
 
-export function httpHandlers(hub: Hub) {
+export function httpHandlers(kit: Kit) {
   return {
     models:
       (opts?: ModelsHandlerOptions) =>
       async (req: RequestLike, res: ResponseLike) => {
         try {
           const params = buildListModelsParams(req);
-          const models = await hub.listModels(params);
+          const models = await kit.listModels(params);
           res.status(200).json(models);
         } catch (err) {
           sendJsonError(res, err);
@@ -51,7 +51,7 @@ export function httpHandlers(hub: Hub) {
       () => async (req: RequestLike, res: ResponseLike) => {
         try {
           const input = normalizeGenerateInput(req.body ?? null);
-          const output = await hub.generate({ ...input, stream: false });
+          const output = await kit.generate({ ...input, stream: false });
           res.status(200).json(output);
         } catch (err) {
           sendJsonError(res, err);
@@ -61,7 +61,7 @@ export function httpHandlers(hub: Hub) {
       () => async (req: RequestLike, res: ResponseLike) => {
         try {
           const input = normalizeImageInput(req.body ?? null);
-          const output = await hub.generateImage(input);
+          const output = await kit.generateImage(input);
           res.status(200).json(output);
         } catch (err) {
           sendJsonError(res, err);
@@ -71,7 +71,7 @@ export function httpHandlers(hub: Hub) {
       () => async (req: RequestLike, res: ResponseLike) => {
         try {
           const input = normalizeMeshInput(req.body ?? null);
-          const output = await hub.generateMesh(input);
+          const output = await kit.generateMesh(input);
           res.status(200).json(output);
         } catch (err) {
           sendJsonError(res, err);
@@ -83,7 +83,7 @@ export function httpHandlers(hub: Hub) {
           const input = normalizeGenerateInput(
             req.method === "GET" ? parseQueryPayload(req) : req.body ?? null,
           );
-          const iterable = hub.streamGenerate({ ...input, stream: true });
+          const iterable = kit.streamGenerate({ ...input, stream: true });
           prepareSSE(res);
           for await (const chunk of iterable) {
             writeSSE(res, "chunk", chunk);
@@ -329,19 +329,19 @@ function writeSSE(res: ResponseLike, event: string, data: unknown) {
 }
 
 function sendJsonError(res: ResponseLike, err: unknown) {
-  const hubErr = toHubError(err);
+  const kitErr = toKitError(err);
   res
-    .status(mapStatus(hubErr))
-    .json({ error: { kind: hubErr.kind, message: hubErr.message } });
+    .status(mapStatus(kitErr))
+    .json({ error: { kind: kitErr.kind, message: kitErr.message } });
 }
 
 function sendSSEError(res: ResponseLike, err: unknown) {
-  const hubErr = toHubError(err);
+  const kitErr = toKitError(err);
   prepareSSE(res);
   writeSSE(res, "error", {
-    kind: hubErr.kind,
-    message: hubErr.message,
-    requestId: hubErr.requestId,
+    kind: kitErr.kind,
+    message: kitErr.message,
+    requestId: kitErr.requestId,
   });
   res.end?.();
 }

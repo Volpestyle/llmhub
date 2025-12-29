@@ -65,7 +65,7 @@ func (a *catalogAdapter) ListModels(_ context.Context) ([]ModelMetadata, error) 
 }
 
 func (a *catalogAdapter) Generate(_ context.Context, _ GenerateInput) (GenerateOutput, error) {
-	return GenerateOutput{}, &HubError{
+	return GenerateOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "catalog provider does not support generate",
 		Provider: ProviderCatalog,
@@ -73,7 +73,7 @@ func (a *catalogAdapter) Generate(_ context.Context, _ GenerateInput) (GenerateO
 }
 
 func (a *catalogAdapter) GenerateImage(_ context.Context, _ ImageGenerateInput) (ImageGenerateOutput, error) {
-	return ImageGenerateOutput{}, &HubError{
+	return ImageGenerateOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "catalog provider does not support image generation",
 		Provider: ProviderCatalog,
@@ -81,7 +81,7 @@ func (a *catalogAdapter) GenerateImage(_ context.Context, _ ImageGenerateInput) 
 }
 
 func (a *catalogAdapter) GenerateMesh(_ context.Context, _ MeshGenerateInput) (MeshGenerateOutput, error) {
-	return MeshGenerateOutput{}, &HubError{
+	return MeshGenerateOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "catalog provider does not support mesh generation",
 		Provider: ProviderCatalog,
@@ -89,7 +89,7 @@ func (a *catalogAdapter) GenerateMesh(_ context.Context, _ MeshGenerateInput) (M
 }
 
 func (a *catalogAdapter) Stream(_ context.Context, _ GenerateInput) (<-chan StreamChunk, error) {
-	return nil, &HubError{
+	return nil, &KitError{
 		Kind:     ErrorUnsupported,
 		Message:  "catalog provider does not support streaming",
 		Provider: ProviderCatalog,

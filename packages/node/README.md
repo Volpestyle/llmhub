@@ -1,6 +1,6 @@
 # ai-kit (Node)
 
-Provider-agnostic model registry and inference adapter for Node.js. The SDK includes a Hub
+Provider-agnostic model registry and inference adapter for Node.js. The SDK includes a Kit
 for list/generate/stream, a model router, SSE helpers, and HTTP handler utilities.
 
 ## Quickstart
@@ -8,9 +8,9 @@ for list/generate/stream, a model router, SSE helpers, and HTTP handler utilitie
 pnpm add @volpestyle/ai-kit-node
 ```
 ```ts
-import { createHub, Provider } from "@volpestyle/ai-kit-node";
+import { createKit, Provider } from "@volpestyle/ai-kit-node";
 
-const kit = createHub({
+const kit = createKit({
   providers: {
     [Provider.OpenAI]: { apiKey: process.env.OPENAI_API_KEY ?? "" },
   },
@@ -43,12 +43,12 @@ for await (const chunk of kit.streamGenerate({
 ### HTTP handlers with SSE
 ```ts
 import express from "express";
-import { createHub, httpHandlers, Provider } from "@volpestyle/ai-kit-node";
+import { createKit, httpHandlers, Provider } from "@volpestyle/ai-kit-node";
 
 const app = express();
 app.use(express.json());
 
-const kit = createHub({
+const kit = createKit({
   providers: {
     [Provider.OpenAI]: { apiKey: process.env.OPENAI_API_KEY ?? "" },
   },
