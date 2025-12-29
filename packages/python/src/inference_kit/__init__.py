@@ -21,7 +21,7 @@ from .types import (
     ToolChoice,
     Usage,
 )
-from .errors import LLMHubError, ErrorKind
+from .errors import InferenceKitError, ErrorKind
 from .providers import (
     OpenAIAdapter,
     OpenAIConfig,
@@ -32,6 +32,7 @@ from .providers import (
     XAIAdapter,
     XAIConfig,
 )
+from .http_asgi import create_asgi_app
 
 __all__ = [
     "Hub",
@@ -56,7 +57,7 @@ __all__ = [
     "ToolDefinition",
     "ToolChoice",
     "Usage",
-    "LLMHubError",
+    "InferenceKitError",
     "ErrorKind",
     "OpenAIAdapter",
     "OpenAIConfig",
@@ -66,4 +67,5 @@ __all__ = [
     "GeminiConfig",
     "XAIAdapter",
     "XAIConfig",
+    "create_asgi_app",
 ]

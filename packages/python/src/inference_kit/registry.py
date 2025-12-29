@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from .entitlements import fingerprint_api_key
-from .errors import ErrorKind, HubErrorPayload, LLMHubError
+from .errors import ErrorKind, HubErrorPayload, InferenceKitError
 from .pricing import apply_curated_metadata
 from .types import (
     EntitlementContext,
@@ -93,7 +93,7 @@ class ModelRegistry:
     ) -> Dict[Provider, CacheEntry]:
         resolved = self._resolve_providers(providers, entitlement)
         if not resolved:
-            raise LLMHubError(
+            raise InferenceKitError(
                 HubErrorPayload(
                     kind=ErrorKind.VALIDATION,
                     message="No providers configured",
@@ -143,7 +143,7 @@ class ModelRegistry:
     ) -> CacheEntry:
         adapter = self._adapter_for(provider, entitlement)
         if not adapter:
-            raise LLMHubError(
+            raise InferenceKitError(
                 HubErrorPayload(
                     kind=ErrorKind.VALIDATION,
                     message=f"Provider {provider} is not configured",
@@ -272,7 +272,7 @@ def _to_iso(timestamp: float) -> str:
 
 
 def _learn_reason(err: Exception) -> Optional[str]:
-    if isinstance(err, LLMHubError):
+    if isinstance(err, InferenceKitError):
         if err.kind in (ErrorKind.PROVIDER_NOT_FOUND, ErrorKind.VALIDATION):
             return str(err)
         if err.upstreamStatus in (400, 403, 404):

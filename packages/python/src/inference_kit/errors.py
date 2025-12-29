@@ -27,7 +27,7 @@ class HubErrorPayload:
     cause: Optional[Exception] = None
 
 
-class LLMHubError(Exception):
+class InferenceKitError(Exception):
     def __init__(self, payload: HubErrorPayload):
         super().__init__(payload.message)
         self.kind = payload.kind
@@ -52,9 +52,9 @@ def classify_status(status: Optional[int]) -> ErrorKind:
     return ErrorKind.UNKNOWN
 
 
-def to_hub_error(err: Exception) -> LLMHubError:
-    if isinstance(err, LLMHubError):
+def to_hub_error(err: Exception) -> InferenceKitError:
+    if isinstance(err, InferenceKitError):
         return err
-    return LLMHubError(
+    return InferenceKitError(
         HubErrorPayload(kind=ErrorKind.UNKNOWN, message=str(err), cause=err)
     )

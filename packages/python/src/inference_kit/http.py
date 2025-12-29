@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from .errors import HubErrorPayload, LLMHubError, classify_status
+from .errors import HubErrorPayload, InferenceKitError, classify_status
 
 
 def request_json(
@@ -22,7 +22,7 @@ def request_json(
         timeout=timeout,
     )
     if response.status_code >= 400:
-        raise LLMHubError(
+        raise InferenceKitError(
             HubErrorPayload(
                 kind=classify_status(response.status_code),
                 message=response.text,
@@ -48,7 +48,7 @@ def request_stream(
         stream=True,
     )
     if response.status_code >= 400:
-        raise LLMHubError(
+        raise InferenceKitError(
             HubErrorPayload(
                 kind=classify_status(response.status_code),
                 message=response.text,

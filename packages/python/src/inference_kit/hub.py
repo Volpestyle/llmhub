@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Dict
 
-from .errors import ErrorKind, HubErrorPayload, LLMHubError, to_hub_error
+from .catalog import CatalogAdapter, load_catalog_models
+from .errors import ErrorKind, HubErrorPayload, InferenceKitError, to_hub_error
 from .entitlements import fingerprint_api_key
 from .pricing import estimate_cost
 from .registry import ModelRegistry
@@ -50,8 +51,9 @@ class _KeyPool:
 
 class Hub:
     def __init__(self, config: HubConfig) -> None:
-        if not config.providers:
-            raise LLMHubError(
+        catalog_models = load_catalog_models()
+        if not config.providers and not catalog_models:
+            raise InferenceKitError(
                 HubErrorPayload(
                     kind=ErrorKind.VALIDATION,
                     message="At least one provider configuration is required",
@@ -59,6 +61,8 @@ class Hub:
             )
         self._providers, self._key_pools = self._prepare_providers(config.providers)
         self._adapters = self._build_adapters(self._providers)
+        if catalog_models:
+            self._adapters["catalog"] = CatalogAdapter(catalog_models)
         self._registry = ModelRegistry(
             self._adapters,
             ttl_seconds=config.registry_ttl_seconds,
@@ -102,7 +106,7 @@ class Hub:
             return self.generate_image_with_context(entitlement, input)
         adapter = self._require_adapter(input.provider)
         if not hasattr(adapter, "generate_image"):
-            raise LLMHubError(
+            raise InferenceKitError(
                 HubErrorPayload(
                     kind=ErrorKind.UNSUPPORTED,
                     message=f"Provider {input.provider} does not support image generation",
@@ -120,7 +124,7 @@ class Hub:
     ) -> ImageGenerateOutput:
         adapter = self._require_adapter(input.provider, entitlement)
         if not hasattr(adapter, "generate_image"):
-            raise LLMHubError(
+            raise InferenceKitError(
                 HubErrorPayload(
                     kind=ErrorKind.UNSUPPORTED,
                     message=f"Provider {input.provider} does not support image generation",
@@ -139,7 +143,7 @@ class Hub:
             return self.generate_mesh_with_context(entitlement, input)
         adapter = self._require_adapter(input.provider)
         if not hasattr(adapter, "generate_mesh"):
-            raise LLMHubError(
+            raise InferenceKitError(
                 HubErrorPayload(
                     kind=ErrorKind.UNSUPPORTED,
                     message=f"Provider {input.provider} does not support mesh generation",
@@ -157,7 +161,7 @@ class Hub:
     ) -> MeshGenerateOutput:
         adapter = self._require_adapter(input.provider, entitlement)
         if not hasattr(adapter, "generate_mesh"):
-            raise LLMHubError(
+            raise InferenceKitError(
                 HubErrorPayload(
                     kind=ErrorKind.UNSUPPORTED,
                     message=f"Provider {input.provider} does not support mesh generation",
@@ -201,7 +205,7 @@ class Hub:
         for provider, cfg in providers.items():
             keys = self._collect_keys(cfg)
             if not keys:
-                raise LLMHubError(
+                raise InferenceKitError(
                     HubErrorPayload(
                         kind=ErrorKind.VALIDATION,
                         message=f"Provider {provider} api key is required",
@@ -248,6 +252,8 @@ class Hub:
     def _adapter_factory(
         self, provider: Provider, entitlement: EntitlementContext | None
     ):
+        if provider == "catalog":
+            return self._adapters.get(provider)
         if not entitlement or not entitlement.apiKey:
             return self._adapters.get(provider)
         base_config = self._providers.get(provider)
@@ -290,7 +296,7 @@ class Hub:
     def _require_adapter(self, provider: Provider, entitlement: EntitlementContext | None = None):
         adapter = self._adapter_factory(provider, entitlement)
         if not adapter:
-            raise LLMHubError(
+            raise InferenceKitError(
                 HubErrorPayload(
                     kind=ErrorKind.VALIDATION,
                     message=f"Provider {provider} is not configured",
