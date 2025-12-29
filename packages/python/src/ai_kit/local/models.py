@@ -23,27 +23,27 @@ REGISTRY.register(
 
 REGISTRY.register(
     "novel-view",
-    "zero123-165000",
-    "kxic/zero123-165000",
+    "stable-zero123",
+    "ashawkey/stable-zero123-diffusers",
     default=True,
 )
 REGISTRY.register(
     "novel-view",
-    "zero123-105000",
+    "zero123-xl",
+    "ashawkey/zero123-xl-diffusers",
+)
+REGISTRY.register(
+    "novel-view",
+    "zero1to3-105000",
     "kxic/zero123-105000",
 )
 REGISTRY.register(
     "novel-view",
-    "zero123-xl",
-    "kxic/zero123-xl",
-)
-REGISTRY.register(
-    "novel-view",
-    "stable-zero123",
+    "zero1to3-165000",
     "kxic/zero123-165000",
 )
 REGISTRY.register(
     "novel-view",
-    "zero123",
-    "kxic/zero123-105000",
+    "zero1to3-xl",
+    "kxic/zero123-xl",
 )

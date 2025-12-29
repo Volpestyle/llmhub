@@ -62,16 +62,46 @@ def get_novel_view_pipeline(model: str, device_str: str) -> NovelViewPipeline:
     import torch
     from huggingface_hub import snapshot_download
 
-    from .zero1to3_pipeline import Zero1to3StableDiffusionPipeline
-
     device = torch.device(device_str)
     dtype = torch.float16 if device.type in {"cuda", "mps"} else torch.float32
-    model_path = _ensure_zero1to3_components(model, snapshot_download)
-    pipe = Zero1to3StableDiffusionPipeline.from_pretrained(
-        model_path,
-        torch_dtype=dtype,
-        local_files_only=True,
-    )
+    trust_remote_code = _env_value(
+        "AI_KIT_TRUST_REMOTE_CODE",
+        "INFERENCE_KIT_TRUST_REMOTE_CODE",
+    ).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "y",
+    }
+
+    snapshot_dir = Path(snapshot_download(model))
+    zero123_pipeline = snapshot_dir / "clip_camera_projection" / "zero123.py"
+    if zero123_pipeline.exists():
+        _ensure_torch_xpu_stub(torch)
+        from diffusers import DiffusionPipeline
+
+        pipe = DiffusionPipeline.from_pretrained(
+            str(snapshot_dir),
+            torch_dtype=dtype,
+            custom_pipeline="clip_camera_projection/zero123",
+            trust_remote_code=trust_remote_code,
+            local_files_only=True,
+            use_safetensors=True,
+        )
+    else:
+        _ensure_torch_xpu_stub(torch)
+        from .zero1to3_pipeline import Zero1to3StableDiffusionPipeline
+
+        model_path = _ensure_zero1to3_components(
+            model,
+            snapshot_download,
+            snapshot_dir=snapshot_dir,
+        )
+        pipe = Zero1to3StableDiffusionPipeline.from_pretrained(
+            model_path,
+            torch_dtype=dtype,
+            local_files_only=True,
+        )
     pipe.to(device)
     if hasattr(pipe, "enable_attention_slicing"):
         pipe.enable_attention_slicing()
@@ -156,8 +186,41 @@ def _env_value(primary: str, legacy: str) -> str:
     return os.getenv(legacy, "")
 
 
-def _ensure_zero1to3_components(model: str, snapshot_download) -> str:
-    snapshot_dir = snapshot_download(model)
+def _ensure_torch_xpu_stub(torch_module) -> None:
+    if hasattr(torch_module, "xpu"):
+        return
+
+    class _XPU:
+        @staticmethod
+        def empty_cache() -> None:
+            return None
+
+        @staticmethod
+        def device_count() -> int:
+            return 0
+
+        @staticmethod
+        def manual_seed(seed: int):
+            return torch_module.manual_seed(seed)
+
+        @staticmethod
+        def synchronize() -> None:
+            return None
+
+        @staticmethod
+        def is_available() -> bool:
+            return False
+
+    torch_module.xpu = _XPU()
+
+
+def _ensure_zero1to3_components(
+    model: str,
+    snapshot_download,
+    *,
+    snapshot_dir: Path | None = None,
+) -> str:
+    snapshot_dir = Path(snapshot_dir or snapshot_download(model))
     component_dir = Path(snapshot_dir) / "cc_projection"
     component_dir.mkdir(parents=True, exist_ok=True)
     component_file = component_dir / "pipeline_zero1to3.py"
