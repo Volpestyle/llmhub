@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import os
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable
 
@@ -59,27 +60,23 @@ class NovelViewPipeline:
 
 def get_novel_view_pipeline(model: str, device_str: str) -> NovelViewPipeline:
     import torch
-    from diffusers import DiffusionPipeline
+    from huggingface_hub import snapshot_download
+
+    from .zero1to3_pipeline import Zero1to3StableDiffusionPipeline
 
     device = torch.device(device_str)
     dtype = torch.float16 if device.type in {"cuda", "mps"} else torch.float32
-    trust_remote_code = _env_value(
-        "AI_KIT_TRUST_REMOTE_CODE",
-        "INFERENCE_KIT_TRUST_REMOTE_CODE",
-    ).strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "y",
-    }
-    pipe = DiffusionPipeline.from_pretrained(
-        model,
+    model_path = _ensure_zero1to3_components(model, snapshot_download)
+    pipe = Zero1to3StableDiffusionPipeline.from_pretrained(
+        model_path,
         torch_dtype=dtype,
-        trust_remote_code=trust_remote_code,
+        local_files_only=True,
     )
     pipe.to(device)
     if hasattr(pipe, "enable_attention_slicing"):
         pipe.enable_attention_slicing()
+    if hasattr(pipe, "enable_vae_tiling"):
+        pipe.enable_vae_tiling()
     if hasattr(pipe, "set_progress_bar_config"):
         pipe.set_progress_bar_config(disable=True)
     return NovelViewPipeline(pipe, device_str)
@@ -101,13 +98,19 @@ def _build_call_kwargs(
     params = inspect.signature(pipe.__call__).parameters
     kwargs: Dict[str, Any] = {}
 
-    image_param = _first_param(params, ("image", "conditioning_image", "input_image"))
+    image_param = _first_param(params, ("image", "conditioning_image", "input_image", "input_imgs"))
     if not image_param:
         raise RuntimeError("Novel-view pipeline does not accept an image parameter")
     kwargs[image_param] = image
+    if image_param == "input_imgs" and "prompt_imgs" in params:
+        kwargs["prompt_imgs"] = image
 
     az_set = _set_if_present(params, ("azimuth", "azimuth_deg", "yaw", "theta"), azimuth_deg, kwargs)
     el_set = _set_if_present(params, ("elevation", "elevation_deg", "pitch", "phi"), elevation_deg, kwargs)
+    if "poses" in params:
+        kwargs["poses"] = [float(elevation_deg), float(azimuth_deg), 0.0]
+        az_set = True
+        el_set = True
     if not (az_set and el_set) and "camera" in params:
         import torch
 
@@ -151,6 +154,19 @@ def _env_value(primary: str, legacy: str) -> str:
     if value:
         return value
     return os.getenv(legacy, "")
+
+
+def _ensure_zero1to3_components(model: str, snapshot_download) -> str:
+    snapshot_dir = snapshot_download(model)
+    component_dir = Path(snapshot_dir) / "cc_projection"
+    component_dir.mkdir(parents=True, exist_ok=True)
+    component_file = component_dir / "pipeline_zero1to3.py"
+    if not component_file.exists():
+        component_file.write_text(
+            "from ai_kit.local.zero1to3_pipeline import CCProjection\n\n"
+            "__all__ = [\"CCProjection\"]\n"
+        )
+    return str(snapshot_dir)
 
 
 def _set_if_present(

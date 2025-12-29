@@ -23,17 +23,27 @@ REGISTRY.register(
 
 REGISTRY.register(
     "novel-view",
-    "zero123-plus",
-    "sudo-ai/zero123plus-v1.2",
-)
-REGISTRY.register(
-    "novel-view",
-    "stable-zero123",
-    "ashawkey/stable-zero123-diffusers",
+    "zero123-165000",
+    "kxic/zero123-165000",
     default=True,
 )
 REGISTRY.register(
     "novel-view",
+    "zero123-105000",
+    "kxic/zero123-105000",
+)
+REGISTRY.register(
+    "novel-view",
+    "zero123-xl",
+    "kxic/zero123-xl",
+)
+REGISTRY.register(
+    "novel-view",
+    "stable-zero123",
+    "kxic/zero123-165000",
+)
+REGISTRY.register(
+    "novel-view",
     "zero123",
-    "ashawkey/zero123",
+    "kxic/zero123-105000",
 )

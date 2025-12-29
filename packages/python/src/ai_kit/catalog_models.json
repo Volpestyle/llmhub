@@ -13,21 +13,8 @@
     }
   },
   {
-    "id": "sam-refine",
-    "displayName": "SAM Refine",
-    "provider": "catalog",
-    "family": "cutout",
-    "capabilities": {
-      "text": false,
-      "vision": false,
-      "tool_use": false,
-      "structured_output": false,
-      "reasoning": false
-    }
-  },
-  {
-    "id": "zero123",
-    "displayName": "Zero123",
+    "id": "zero123-165000",
+    "displayName": "Zero123 165k (Zero1to3)",
     "provider": "catalog",
     "family": "views",
     "capabilities": {
@@ -39,8 +26,8 @@
     }
   },
   {
-    "id": "stable-zero123",
-    "displayName": "Stable Zero123",
+    "id": "zero123-105000",
+    "displayName": "Zero123 105k (Zero1to3)",
     "provider": "catalog",
     "family": "views",
     "capabilities": {
@@ -52,8 +39,8 @@
     }
   },
   {
-    "id": "zero123-plus",
-    "displayName": "Zero123++",
+    "id": "zero123-xl",
+    "displayName": "Zero123 XL (Zero1to3)",
     "provider": "catalog",
     "family": "views",
     "capabilities": {
