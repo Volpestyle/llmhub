@@ -1,132 +1,151 @@
-# llmhub
+# inference-kit
 
-Cross-provider LLM hub with reusable libraries for Node.js (TypeScript), Go, and Python. The hub keeps a normalized model registry, adapts request/response shapes across OpenAI, Anthropic, xAI (Grok), and Google Gemini, and exposes HTTP helpers for `/provider-models`, `/generate`, `/generate/stream`, `/image`, and `/mesh` endpoints.
+Provider-agnostic inference tooling for Node.js, Go, and Python. The repo standardizes model
+listing, routing, generation, streaming (SSE), and cost estimation across OpenAI, Anthropic,
+Google Gemini, and xAI. It also ships shared curated model metadata and a reference OpenAPI
+spec for HTTP servers.
 
-## Repository layout
+## Packages
+- `packages/node`: Node.js SDK and HTTP handlers
+- `packages/go`: Go SDK and HTTP handlers
+- `packages/python`: Python SDK + local pipelines for basic vision tasks
+- `models`: shared curated model metadata and optional catalog models
+- `servers/openapi.yaml`: reference HTTP API
+- `docs`: architecture overview and HTTP notes
 
-- `packages/node` – TypeScript package `@volpestyle/llmhub-node` with adapters, hub factory, and Express-friendly HTTP handlers.
-- `packages/go` – Go module `github.com/Volpestyle/llmhub` with mirrored domain types, adapters, and `net/http` handlers.
-- `packages/python` – Python package `llmhub` with adapters, registry/router, and hub helper.
-- `models/curated_models.json` – canonical curated capability overlay consumed by both libraries.
-- `servers/openapi.yaml` – Minimal OpenAPI description for the reference endpoints.
-- `docs/` – High-level design and implementation guides provided by product.
-
-## Node.js usage
-
+## Quickstart
+### Node.js
+```bash
+pnpm install
+pnpm --filter @volpestyle/inference-kit-node build
+```
 ```ts
-import express from "express";
-import { createHub, httpHandlers, Provider } from "@volpestyle/llmhub-node";
+import { createHub, Provider } from "@volpestyle/inference-kit-node";
 
 const hub = createHub({
   providers: {
-    [Provider.OpenAI]: { apiKey: process.env.OPENAI_API_KEY!, apiKeys: process.env.OPENAI_API_KEYS?.split(",") },
-    [Provider.Anthropic]: { apiKey: process.env.ANTHROPIC_API_KEY! },
-    [Provider.XAI]: { apiKey: process.env.XAI_API_KEY! },
-    [Provider.Google]: { apiKey: process.env.GOOGLE_API_KEY! },
+    [Provider.OpenAI]: { apiKey: process.env.OPENAI_API_KEY ?? "" },
   },
 });
 
-const app = express();
-app.use(express.json());
-const handlers = httpHandlers(hub);
-app.get("/provider-models", handlers.models());
-app.post("/generate", handlers.generate());
-app.post("/image", handlers.image());
-app.post("/mesh", handlers.mesh());
-app.post("/generate/stream", handlers.generateSSE());
-```
-
-Run `npm install` then `npm run build` inside `packages/node` to emit CJS/ESM bundles.
-
-## Go usage
-
-```go
-import (
-    "log"
-    "github.com/Volpestyle/llmhub"
-)
-
-hub, err := llmhub.New(llmhub.Config{
-    OpenAI: &llmhub.OpenAIConfig{APIKey: os.Getenv("OPENAI_API_KEY"), APIKeys: strings.Split(os.Getenv("OPENAI_API_KEYS"), ",")},
-    Anthropic: &llmhub.AnthropicConfig{APIKey: os.Getenv("ANTHROPIC_API_KEY")},
-    XAI: &llmhub.XAIConfig{APIKey: os.Getenv("XAI_API_KEY")},
-    Google: &llmhub.GoogleConfig{APIKey: os.Getenv("GOOGLE_API_KEY")},
-})
-if err != nil { log.Fatal(err) }
-
-http.HandleFunc("/provider-models", llmhub.ModelsHandler(hub, nil))
-http.HandleFunc("/generate", llmhub.GenerateHandler(hub))
-http.HandleFunc("/image", llmhub.ImageHandler(hub))
-http.HandleFunc("/mesh", llmhub.MeshHandler(hub))
-http.HandleFunc("/generate/stream", llmhub.GenerateSSEHandler(hub))
-```
-
-Build with `go build ./...` from the repo root.
-
-> The Go OpenAI adapter automatically switches to the Responses API whenever you request a JSON-schema `responseFormat`, ensuring strict structured outputs that mirror the TypeScript implementation.
-
-## Streaming contracts
-
-- Node adapters expose `hub.streamGenerate(input)` returning an `AsyncIterable<StreamChunk>` normalized across providers.
-- Go adapters return `<-chan StreamChunk` with the same shape; HTTP helpers emit Server-Sent Events with `event: chunk` entries.
-
-## Local LLMs (Ollama, LM Studio, llama.cpp)
-
-The package works with any OpenAI-compatible local LLM server by setting a custom `baseURL`:
-
-```ts
-const hub = createHub({
-  providers: {
-    [Provider.OpenAI]: {
-      apiKey: "local",  // Local servers ignore this, but a value is required
-      baseURL: "http://localhost:11434/v1",  // Ollama
-      // baseURL: "http://localhost:1234/v1",  // LM Studio
-      // baseURL: "http://localhost:8080/v1",  // llama.cpp server
-    },
-  },
-});
-
-// Use any locally-running model
-const response = await hub.generate({
+const output = await hub.generate({
   provider: Provider.OpenAI,
-  model: "llama3.2",
+  model: "gpt-4o-mini",
   messages: [{ role: "user", content: [{ type: "text", text: "Hello" }] }],
 });
+
+console.log(output.text);
 ```
 
-SSE streaming works identically—local servers emit events in OpenAI-compatible format, enabling progressive rendering in UI consumers.
+### Go
+```bash
+go get github.com/Volpestyle/inference-kit/packages/go
+```
+```go
+package main
 
-## Python usage
+import (
+  "context"
+  "fmt"
+  "os"
 
+  inferencekit "github.com/Volpestyle/inference-kit/packages/go"
+)
+
+func main() {
+  hub, err := inferencekit.New(inferencekit.Config{
+    OpenAI: &inferencekit.OpenAIConfig{APIKey: os.Getenv("OPENAI_API_KEY")},
+  })
+  if err != nil {
+    panic(err)
+  }
+
+  out, err := hub.Generate(context.Background(), inferencekit.GenerateInput{
+    Provider: inferencekit.ProviderOpenAI,
+    Model:    "gpt-4o-mini",
+    Messages: []inferencekit.Message{{
+      Role: "user",
+      Content: []inferencekit.ContentPart{{
+        Type: "text",
+        Text: "Hello",
+      }},
+    }},
+  })
+  if err != nil {
+    panic(err)
+  }
+
+  fmt.Println(out.Text)
+}
+```
+
+### Python
+```bash
+python -m pip install -e packages/python
+```
 ```py
 import os
-from llmhub import Hub, HubConfig
-from llmhub.providers import OpenAIConfig
+from inference_kit import Hub, HubConfig, GenerateInput, Message, ContentPart
+from inference_kit.providers import OpenAIConfig
 
 hub = Hub(
     HubConfig(
         providers={
-            "openai": OpenAIConfig(
-                api_key=os.environ.get("OPENAI_API_KEY", ""),
-                api_keys=os.environ.get("OPENAI_API_KEYS", "").split(","),
-            ),
+            "openai": OpenAIConfig(api_key=os.environ.get("OPENAI_API_KEY", ""))
         }
     )
 )
 
-models = hub.list_models()
+out = hub.generate(
+    GenerateInput(
+        provider="openai",
+        model="gpt-4o-mini",
+        messages=[Message(role="user", content=[ContentPart(type="text", text="Hello")])],
+    )
+)
+
+print(out.text)
 ```
 
-## Testing
+## Examples
+### Auto-select the cheapest compatible model
+```ts
+import { ModelRouter, Provider } from "@volpestyle/inference-kit-node";
 
-- Node: from `packages/node`, run `npm install` once and then `npm test` (Vitest). Contract fixtures ensure each provider adapter returns identical normalized output and the HTTP handlers emit the expected JSON/SSE shapes.
-- Go: from the repo root run `go test ./packages/go/...` to exercise the adapter contracts and the `net/http` handlers.
+const models = await hub.listModelRecords();
+const router = new ModelRouter();
+const resolved = router.resolve(models, {
+  constraints: { requireTools: true, maxCostUsd: 2.0 },
+  preferredModels: ["openai:gpt-4o-mini"],
+});
 
-## Refreshing curated models
+const output = await hub.generate({
+  provider: resolved.primary.provider,
+  model: resolved.primary.providerModelId,
+  messages: [{ role: "user", content: [{ type: "text", text: "Summarize this" }] }],
+});
+```
 
-- Set `OPENAI_API_KEY` (either export it or drop it in `packages/node/.env`/`.env.local`) so the pricing parser can run.
-- From `packages/node`, run `npm run refresh:models` to render provider pricing pages, parse them with an LLM, and rewrite `models/curated_models.json`. The script only updates fields that are explicitly present in the scraped pages (no heuristics).
-- The refresh script uses Playwright for rendering and the OpenAI Responses API for parsing; set `OPENAI_API_KEY` and optionally `PRICING_PARSER_MODEL`. Override pricing URLs with `OPENAI_PRICING_URL`, `ANTHROPIC_PRICING_URL`, `XAI_PRICING_URL`, `GOOGLE_PRICING_URL` if needed.
-- At runtime the model registry always pulls from provider APIs (cached by default). The curated JSON is used as an overlay to enrich display names, capabilities, context windows, and pricing metadata.
-- Append `?refresh=true` (or call `hub.listModels({ refresh: true })`) to bypass the registry cache when you explicitly need a live refresh.
-- See `docs/design_doc.md` and `docs/implementation_guide.md` for more detail on how the curated overlay and refresh script fit into the registry strategy.
+### Stream SSE for progressive UI rendering (Node)
+```ts
+import express from "express";
+import { createHub, httpHandlers, Provider } from "@volpestyle/inference-kit-node";
+
+const app = express();
+app.use(express.json());
+
+const hub = createHub({
+  providers: {
+    [Provider.OpenAI]: { apiKey: process.env.OPENAI_API_KEY ?? "" },
+  },
+});
+
+const handlers = httpHandlers(hub);
+app.post("/generate", handlers.generate());
+app.post("/generate/stream", handlers.generateSSE());
+app.get("/provider-models", handlers.models());
+
+app.listen(3000);
+```
+
+More details live in `docs/README.md`.
