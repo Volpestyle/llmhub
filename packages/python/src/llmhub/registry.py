@@ -6,6 +6,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 from .entitlements import fingerprint_api_key
 from .errors import ErrorKind, HubErrorPayload, LLMHubError
+from .pricing import apply_curated_metadata
 from .types import (
     EntitlementContext,
     ModelAvailability,
@@ -149,6 +150,7 @@ class ModelRegistry:
                 )
             )
         models = adapter.list_models()
+        models = [apply_curated_metadata(model) for model in models]
         now = _now_timestamp()
         entry = CacheEntry(
             data=models,

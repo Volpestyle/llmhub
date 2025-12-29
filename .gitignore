@@ -5,4 +5,9 @@ dist
 coverage
 bin
 tmp
+.env
 .env.local
+.env.*
+!.env.example
+__pycache__/
+*.egg-info/

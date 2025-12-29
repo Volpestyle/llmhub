@@ -179,6 +179,9 @@ func (r *modelRegistry) fetchAndCache(ctx context.Context, provider Provider, en
 	if err != nil {
 		return registryEntry{}, err
 	}
+	for idx, model := range models {
+		models[idx] = applyCuratedMetadata(model)
+	}
 	now := time.Now()
 	entry := registryEntry{
 		data:      models,

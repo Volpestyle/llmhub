@@ -14,6 +14,7 @@ import {
   ModelRecord,
   Provider,
 } from "../core/types.js";
+import { applyCuratedMetadata } from "../core/pricing.js";
 
 interface CacheEntry {
   expiresAt: number;
@@ -159,8 +160,9 @@ export class ModelRegistry {
       });
     }
     const models = await adapter.listModels();
+    const curatedModels = models.map((model) => applyCuratedMetadata(model));
     const entry = {
-      data: models,
+      data: curatedModels,
       fetchedAt: Date.now(),
       expiresAt: Date.now() + this.ttlMs,
     };
