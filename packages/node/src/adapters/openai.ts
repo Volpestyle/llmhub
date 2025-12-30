@@ -1,5 +1,8 @@
+import { readFile } from "fs/promises";
+import { basename } from "path";
 import { ProviderAdapter } from "../core/provider.js";
 import {
+  AudioInput,
   GenerateInput,
   GenerateOutput,
   ImageGenerateInput,
@@ -11,6 +14,9 @@ import {
   StreamChunk,
   ToolCall,
   ToolDefinition,
+  TranscriptSegment,
+  TranscribeInput,
+  TranscribeOutput,
   Usage,
   FetchLike,
 } from "../core/types.js";
@@ -26,6 +32,17 @@ interface OpenAIImageResponse {
   data: Array<{
     b64_json?: string;
     url?: string;
+  }>;
+}
+
+interface OpenAITranscriptionResponse {
+  text?: string;
+  language?: string;
+  duration?: number;
+  segments?: Array<{
+    start?: number;
+    end?: number;
+    text?: string;
   }>;
 }
 
@@ -223,6 +240,35 @@ export class OpenAIAdapter implements ProviderAdapter {
     return {
       mime: "image/png",
       data: image.b64_json,
+      raw: response,
+    };
+  }
+
+  async transcribe(input: TranscribeInput): Promise<TranscribeOutput> {
+    const audio = await this.loadAudioInput(input.audio);
+    const form = new FormData();
+    form.append("model", input.model);
+    form.append("response_format", "verbose_json");
+    if (input.language) {
+      form.append("language", input.language);
+    }
+    if (input.prompt) {
+      form.append("prompt", input.prompt);
+    }
+    if (typeof input.temperature === "number") {
+      form.append("temperature", String(input.temperature));
+    }
+    form.append("file", new Blob([audio.data], { type: audio.mediaType }), audio.fileName);
+
+    const response = await this.fetchForm<OpenAITranscriptionResponse>(
+      "/v1/audio/transcriptions",
+      form,
+    );
+    return {
+      text: response.text,
+      language: response.language,
+      duration: response.duration,
+      segments: this.normalizeSegments(response.segments),
       raw: response,
     };
   }
@@ -544,9 +590,16 @@ export class OpenAIAdapter implements ProviderAdapter {
     }
     const url = `${this.baseURL}${path}`;
     const headers: Record<string, string> = {
-      "content-type": "application/json",
       ...(init.headers ?? {}),
     };
+    const hasContentType = Object.keys(headers).some(
+      (key) => key.toLowerCase() === "content-type",
+    );
+    const isFormData =
+      typeof FormData !== "undefined" && init.body instanceof FormData;
+    if (!hasContentType && !isFormData) {
+      headers["content-type"] = "application/json";
+    }
     if (this.config.apiKey) {
       headers.Authorization = `Bearer ${this.config.apiKey}`;
     }
@@ -579,6 +632,85 @@ export class OpenAIAdapter implements ProviderAdapter {
       });
     }
     return response;
+  }
+
+  private async fetchForm<T>(path: string, body: FormData): Promise<T> {
+    const response = await this.fetchRaw(path, {
+      method: "POST",
+      body,
+    });
+    const json = await response.json();
+    return json as T;
+  }
+
+  private normalizeSegments(
+    segments?: OpenAITranscriptionResponse["segments"],
+  ): TranscriptSegment[] | undefined {
+    if (!segments?.length) {
+      return undefined;
+    }
+    return segments
+      .filter((segment) => typeof segment.text === "string")
+      .map((segment) => ({
+        start: segment.start ?? 0,
+        end: segment.end ?? 0,
+        text: segment.text ?? "",
+      }));
+  }
+
+  private async loadAudioInput(input: AudioInput): Promise<{
+    data: Uint8Array;
+    fileName: string;
+    mediaType: string;
+  }> {
+    if (input.path) {
+      const data = await readFile(input.path);
+      return {
+        data,
+        fileName: input.fileName ?? basename(input.path),
+        mediaType: input.mediaType ?? "application/octet-stream",
+      };
+    }
+    if (input.base64) {
+      const { data, mediaType } = decodeBase64Input(input.base64, input.mediaType);
+      return {
+        data,
+        fileName: input.fileName ?? "audio",
+        mediaType,
+      };
+    }
+    if (input.url) {
+      const fetchImpl = this.fetchImpl ?? globalThis.fetch;
+      if (!fetchImpl) {
+        throw new AiKitError({
+          kind: ErrorKind.Unsupported,
+          message: "global fetch is not available",
+          provider: this.provider,
+        });
+      }
+      const response = await fetchImpl(input.url);
+      if (!response.ok) {
+        throw new AiKitError({
+          kind: ErrorKind.Validation,
+          message: `Unable to fetch audio URL (${response.status})`,
+          provider: this.provider,
+        });
+      }
+      const data = new Uint8Array(await response.arrayBuffer());
+      return {
+        data,
+        fileName: input.fileName ?? "audio",
+        mediaType:
+          input.mediaType ??
+          response.headers.get("content-type") ??
+          "application/octet-stream",
+      };
+    }
+    throw new AiKitError({
+      kind: ErrorKind.Validation,
+      message: "Transcribe input requires audio.url, audio.base64, or audio.path",
+      provider: this.provider,
+    });
   }
 
   private updateToolState(
@@ -625,6 +757,23 @@ export class OpenAIAdapter implements ProviderAdapter {
     }
     return chunks;
   }
+}
+
+function decodeBase64Input(
+  raw: string,
+  explicitType?: string,
+): { data: Uint8Array; mediaType: string } {
+  if (raw.startsWith("data:")) {
+    const [header, payload] = raw.split(",", 2);
+    const mediaMatch = header.match(/^data:([^;]+);base64$/);
+    const mediaType =
+      explicitType ?? mediaMatch?.[1] ?? "application/octet-stream";
+    return { data: Buffer.from(payload ?? "", "base64"), mediaType };
+  }
+  return {
+    data: Buffer.from(raw, "base64"),
+    mediaType: explicitType ?? "application/octet-stream",
+  };
 }
 
 function stringifyArguments(value: unknown): string {

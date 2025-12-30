@@ -8,6 +8,7 @@ const (
 	ProviderXAI         Provider = "xai"
 	ProviderGoogle      Provider = "google"
 	ProviderOllama      Provider = "ollama"
+	ProviderLocal       Provider = "local"
 )
 
 type ModelCapabilities struct {
@@ -125,6 +126,14 @@ type ImageInput struct {
 	MediaType string `json:"mediaType,omitempty"`
 }
 
+type AudioInput struct {
+	URL       string `json:"url,omitempty"`
+	Base64    string `json:"base64,omitempty"`
+	MediaType string `json:"mediaType,omitempty"`
+	FileName  string `json:"fileName,omitempty"`
+	Path      string `json:"path,omitempty"`
+}
+
 type ImageOutput struct {
 	Mime string `json:"mime"`
 	Data string `json:"data"`
@@ -201,6 +210,30 @@ type MeshGenerateOutput struct {
 	Data   string      `json:"data"`
 	Format string      `json:"format,omitempty"`
 	Raw    interface{} `json:"raw,omitempty"`
+}
+
+type TranscriptSegment struct {
+	Start float64 `json:"start"`
+	End   float64 `json:"end"`
+	Text  string  `json:"text"`
+}
+
+type TranscribeInput struct {
+	Provider    Provider          `json:"provider"`
+	Model       string            `json:"model"`
+	Audio       AudioInput        `json:"audio"`
+	Language    string            `json:"language,omitempty"`
+	Prompt      string            `json:"prompt,omitempty"`
+	Temperature *float64          `json:"temperature,omitempty"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
+}
+
+type TranscribeOutput struct {
+	Text     string             `json:"text,omitempty"`
+	Language string             `json:"language,omitempty"`
+	Duration float64            `json:"duration,omitempty"`
+	Segments []TranscriptSegment `json:"segments,omitempty"`
+	Raw      interface{}        `json:"raw,omitempty"`
 }
 
 type ToolCall struct {

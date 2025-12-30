@@ -23,6 +23,7 @@ type Fixture struct {
 	Stream   []aikit.StreamChunk
 	Image    *aikit.ImageGenerateOutput
 	Mesh     *aikit.MeshGenerateOutput
+	Transcribe *aikit.TranscribeOutput
 }
 
 type FixtureCalls struct {
@@ -30,6 +31,7 @@ type FixtureCalls struct {
 	Stream   []aikit.GenerateInput
 	Image    []aikit.ImageGenerateInput
 	Mesh     []aikit.MeshGenerateInput
+	Transcribe []aikit.TranscribeInput
 }
 
 type FixtureAdapter struct {
@@ -83,6 +85,19 @@ func (f *FixtureAdapter) GenerateMesh(ctx context.Context, in aikit.MeshGenerate
 		return aikit.MeshGenerateOutput{}, fmt.Errorf("fixture for mesh is missing (key: %s)", f.keyFor("mesh", in.Provider, in.Model, in))
 	}
 	return *entry.Mesh, nil
+}
+
+func (f *FixtureAdapter) Transcribe(ctx context.Context, in aikit.TranscribeInput) (aikit.TranscribeOutput, error) {
+	_ = ctx
+	f.Calls.Transcribe = append(f.Calls.Transcribe, in)
+	entry, err := f.lookupFixture("transcribe", in.Provider, in.Model, in)
+	if err != nil {
+		return aikit.TranscribeOutput{}, err
+	}
+	if entry.Transcribe == nil {
+		return aikit.TranscribeOutput{}, fmt.Errorf("fixture for transcribe is missing (key: %s)", f.keyFor("transcribe", in.Provider, in.Model, in))
+	}
+	return *entry.Transcribe, nil
 }
 
 func (f *FixtureAdapter) Stream(ctx context.Context, in aikit.GenerateInput) (<-chan aikit.StreamChunk, error) {
@@ -151,6 +166,15 @@ func ImageKey(input aikit.ImageGenerateInput) string {
 func MeshKey(input aikit.MeshGenerateInput) string {
 	return DefaultFixtureKey(FixtureKeyInput{
 		Method:   "mesh",
+		Provider: input.Provider,
+		Model:    input.Model,
+		Input:    input,
+	})
+}
+
+func TranscribeKey(input aikit.TranscribeInput) string {
+	return DefaultFixtureKey(FixtureKeyInput{
+		Method:   "transcribe",
 		Provider: input.Provider,
 		Model:    input.Model,
 		Input:    input,

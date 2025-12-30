@@ -59,6 +59,14 @@ func (x *xaiAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) (Me
 	}
 }
 
+func (x *xaiAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
+	return TranscribeOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "xAI transcription is not supported",
+		Provider: ProviderXAI,
+	}
+}
+
 func (x *xaiAdapter) Stream(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
 	adapter := x.selectAdapter(in)
 	return adapter.Stream(ctx, in)

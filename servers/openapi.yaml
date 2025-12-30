@@ -69,6 +69,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MeshGenerateOutput'
+  /transcribe:
+    post:
+      summary: Run a single transcription request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TranscribeInput'
+      responses:
+        '200':
+          description: Transcription completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscribeOutput'
   /generate/stream:
     post:
       summary: Streaming generation via Server-Sent Events
@@ -97,7 +113,7 @@ components:
           type: string
         provider:
           type: string
-          enum: [openai, anthropic, google, xai, ollama]
+          enum: [openai, anthropic, google, xai, ollama, local]
         family:
           type: string
         capabilities:
@@ -159,6 +175,14 @@ components:
         url: { type: string }
         base64: { type: string }
         mediaType: { type: string }
+    AudioInput:
+      type: object
+      properties:
+        url: { type: string }
+        base64: { type: string }
+        mediaType: { type: string }
+        fileName: { type: string }
+        path: { type: string }
     GenerateInput:
       type: object
       required: [provider, model, messages]
@@ -231,6 +255,38 @@ components:
       properties:
         data: { type: string }
         format: { type: string }
+    TranscriptSegment:
+      type: object
+      required: [start, end, text]
+      properties:
+        start: { type: number }
+        end: { type: number }
+        text: { type: string }
+    TranscribeInput:
+      type: object
+      required: [provider, model, audio]
+      properties:
+        provider: { type: string }
+        model: { type: string }
+        audio:
+          $ref: '#/components/schemas/AudioInput'
+        language: { type: string }
+        prompt: { type: string }
+        temperature: { type: number }
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    TranscribeOutput:
+      type: object
+      properties:
+        text: { type: string }
+        language: { type: string }
+        duration: { type: number }
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/TranscriptSegment'
     ToolCall:
       type: object
       properties:

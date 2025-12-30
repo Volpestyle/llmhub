@@ -121,6 +121,14 @@ func (g *googleAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) 
 	}
 }
 
+func (g *googleAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
+	return TranscribeOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Gemini transcription is not supported",
+		Provider: ProviderGoogle,
+	}
+}
+
 func (g *googleAdapter) Stream(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
 	path := fmt.Sprintf("%s/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s", g.baseURL, ensureModelsPrefix(in.Model), g.config.APIKey)
 	payload := g.buildPayload(in)

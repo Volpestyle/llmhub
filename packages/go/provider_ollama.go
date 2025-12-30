@@ -51,6 +51,14 @@ func (a *ollamaAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) 
 	}
 }
 
+func (a *ollamaAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
+	return TranscribeOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Ollama transcription is not supported",
+		Provider: ProviderOllama,
+	}
+}
+
 func (a *ollamaAdapter) Stream(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
 	in.Provider = ProviderOllama
 	return a.openai.Stream(ctx, in)

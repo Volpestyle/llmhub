@@ -13,6 +13,7 @@ type KitAPI interface {
 	Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error)
 	GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error)
 	GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error)
+	Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error)
 	StreamGenerate(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error)
 }
 
@@ -90,6 +91,22 @@ func MeshHandler(h KitAPI) http.HandlerFunc {
 	}
 }
 
+func TranscribeHandler(h KitAPI) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var input TranscribeInput
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			return
+		}
+		output, err := h.Transcribe(r.Context(), input)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		writeJSON(w, output)
+	}
+}
+
 func GenerateSSEHandler(h KitAPI) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input GenerateInput
@@ -143,6 +160,8 @@ func parseProviders(value string) []Provider {
 			providers = append(providers, ProviderXAI)
 		case string(ProviderOllama):
 			providers = append(providers, ProviderOllama)
+		case string(ProviderLocal):
+			providers = append(providers, ProviderLocal)
 		}
 	}
 	return providers

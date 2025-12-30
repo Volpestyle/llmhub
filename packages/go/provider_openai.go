@@ -3,9 +3,15 @@ package aikit
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -123,6 +129,17 @@ type openAIImageResponse struct {
 		B64JSON string `json:"b64_json"`
 		URL     string `json:"url"`
 	} `json:"data"`
+}
+
+type openAITranscriptionResponse struct {
+	Text     string `json:"text"`
+	Language string `json:"language"`
+	Duration float64 `json:"duration"`
+	Segments []struct {
+		Start float64 `json:"start"`
+		End   float64 `json:"end"`
+		Text  string  `json:"text"`
+	} `json:"segments"`
 }
 
 func (p *openAIResponsesStreamPayload) ErrorCode() string {
@@ -247,6 +264,81 @@ func (a *openAIAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) 
 	}
 }
 
+func (a *openAIAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
+	fileName, data, mediaType, err := a.loadAudioInput(ctx, in.Audio)
+	if err != nil {
+		return TranscribeOutput{}, err
+	}
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	if err := writer.WriteField("model", in.Model); err != nil {
+		return TranscribeOutput{}, err
+	}
+	if err := writer.WriteField("response_format", "verbose_json"); err != nil {
+		return TranscribeOutput{}, err
+	}
+	if strings.TrimSpace(in.Language) != "" {
+		if err := writer.WriteField("language", in.Language); err != nil {
+			return TranscribeOutput{}, err
+		}
+	}
+	if strings.TrimSpace(in.Prompt) != "" {
+		if err := writer.WriteField("prompt", in.Prompt); err != nil {
+			return TranscribeOutput{}, err
+		}
+	}
+	if in.Temperature != nil {
+		if err := writer.WriteField("temperature", fmt.Sprintf("%g", *in.Temperature)); err != nil {
+			return TranscribeOutput{}, err
+		}
+	}
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, fileName))
+	if mediaType != "" {
+		header.Set("Content-Type", mediaType)
+	}
+	part, err := writer.CreatePart(header)
+	if err != nil {
+		return TranscribeOutput{}, err
+	}
+	if _, err := part.Write(data); err != nil {
+		return TranscribeOutput{}, err
+	}
+	if err := writer.Close(); err != nil {
+		return TranscribeOutput{}, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+"/v1/audio/transcriptions", body)
+	if err != nil {
+		return TranscribeOutput{}, err
+	}
+	a.applyAuthHeaders(req)
+	req.Header.Set("content-type", writer.FormDataContentType())
+
+	var payload openAITranscriptionResponse
+	if err := doJSON(ctx, a.client, req, a.provider, &payload); err != nil {
+		return TranscribeOutput{}, err
+	}
+	output := TranscribeOutput{
+		Text:     payload.Text,
+		Language: payload.Language,
+		Duration: payload.Duration,
+		Raw:      payload,
+	}
+	if len(payload.Segments) > 0 {
+		segments := make([]TranscriptSegment, 0, len(payload.Segments))
+		for _, seg := range payload.Segments {
+			segments = append(segments, TranscriptSegment{
+				Start: seg.Start,
+				End:   seg.End,
+				Text:  seg.Text,
+			})
+		}
+		output.Segments = segments
+	}
+	return output, nil
+}
+
 func (a *openAIAdapter) Stream(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
 	if a.shouldUseResponses(in) {
 		body := a.buildResponsesPayload(in, true)
@@ -356,12 +448,109 @@ func (a *openAIAdapter) jsonRequest(ctx context.Context, method, path string, pa
 
 func (a *openAIAdapter) applyHeaders(req *http.Request) {
 	req.Header.Set("content-type", "application/json")
+	a.applyAuthHeaders(req)
+}
+
+func (a *openAIAdapter) applyAuthHeaders(req *http.Request) {
 	if strings.TrimSpace(a.config.APIKey) != "" {
 		req.Header.Set("authorization", fmt.Sprintf("Bearer %s", a.config.APIKey))
 	}
 	if a.config.Organization != "" {
 		req.Header.Set("OpenAI-Organization", a.config.Organization)
 	}
+}
+
+func (a *openAIAdapter) loadAudioInput(ctx context.Context, input AudioInput) (string, []byte, string, error) {
+	if strings.TrimSpace(input.Path) != "" {
+		data, err := os.ReadFile(input.Path)
+		if err != nil {
+			return "", nil, "", err
+		}
+		name := input.FileName
+		if name == "" {
+			name = filepath.Base(input.Path)
+		}
+		mediaType := input.MediaType
+		if mediaType == "" {
+			mediaType = "application/octet-stream"
+		}
+		return name, data, mediaType, nil
+	}
+	if strings.TrimSpace(input.Base64) != "" {
+		data, mediaType, err := decodeAudioBase64(input.Base64, input.MediaType)
+		if err != nil {
+			return "", nil, "", err
+		}
+		name := input.FileName
+		if name == "" {
+			name = "audio"
+		}
+		return name, data, mediaType, nil
+	}
+	if strings.TrimSpace(input.URL) != "" {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, input.URL, nil)
+		if err != nil {
+			return "", nil, "", err
+		}
+		resp, err := a.client.Do(req)
+		if err != nil {
+			return "", nil, "", err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode >= 400 {
+			body, _ := io.ReadAll(resp.Body)
+			return "", nil, "", &KitError{
+				Kind:           ErrorValidation,
+				Message:        fmt.Sprintf("Audio URL request failed (%d): %s", resp.StatusCode, strings.TrimSpace(string(body))),
+				Provider:       a.provider,
+				UpstreamStatus: resp.StatusCode,
+			}
+		}
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", nil, "", err
+		}
+		name := input.FileName
+		if name == "" {
+			name = "audio"
+		}
+		mediaType := input.MediaType
+		if mediaType == "" {
+			mediaType = resp.Header.Get("content-type")
+		}
+		if mediaType == "" {
+			mediaType = "application/octet-stream"
+		}
+		return name, data, mediaType, nil
+	}
+	return "", nil, "", &KitError{
+		Kind:     ErrorValidation,
+		Message:  "Transcribe input requires audio.url, audio.base64, or audio.path",
+		Provider: a.provider,
+	}
+}
+
+func decodeAudioBase64(raw string, explicitType string) ([]byte, string, error) {
+	payload := raw
+	mediaType := explicitType
+	if strings.HasPrefix(raw, "data:") {
+		parts := strings.SplitN(raw, ",", 2)
+		if len(parts) == 2 {
+			payload = parts[1]
+			if mediaType == "" {
+				header := parts[0]
+				mediaType = strings.TrimPrefix(strings.SplitN(header, ";", 2)[0], "data:")
+			}
+		}
+	}
+	if mediaType == "" {
+		mediaType = "application/octet-stream"
+	}
+	data, err := base64.StdEncoding.DecodeString(payload)
+	if err != nil {
+		return nil, "", err
+	}
+	return data, mediaType, nil
 }
 
 func (a *openAIAdapter) buildChatPayload(in GenerateInput, stream bool) map[string]interface{} {

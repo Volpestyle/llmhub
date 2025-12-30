@@ -6,6 +6,7 @@ export enum Provider {
   XAI = "xai",
   Google = "google",
   Ollama = "ollama",
+  Local = "local",
 }
 
 export type ProviderMap<T> = Partial<Record<Provider, T>>;
@@ -246,6 +247,14 @@ export interface ImageInput {
   mediaType?: string;
 }
 
+export interface AudioInput {
+  url?: string;
+  base64?: string;
+  mediaType?: string;
+  fileName?: string;
+  path?: string;
+}
+
 export interface ImageGenerateInput {
   provider: Provider;
   model: string;
@@ -273,6 +282,30 @@ export interface MeshGenerateInput {
 export interface MeshGenerateOutput {
   data: string;
   format?: "glb";
+  raw?: unknown;
+}
+
+export interface TranscriptSegment {
+  start: number;
+  end: number;
+  text: string;
+}
+
+export interface TranscribeInput {
+  provider: Provider;
+  model: string;
+  audio: AudioInput;
+  language?: string;
+  prompt?: string;
+  temperature?: number;
+  metadata?: Record<string, string>;
+}
+
+export interface TranscribeOutput {
+  text?: string;
+  language?: string;
+  duration?: number;
+  segments?: TranscriptSegment[];
   raw?: unknown;
 }
 
@@ -396,6 +429,7 @@ export interface Kit {
   ): Promise<GenerateOutput>;
   generateImage(input: ImageGenerateInput): Promise<ImageGenerateOutput>;
   generateMesh(input: MeshGenerateInput): Promise<MeshGenerateOutput>;
+  transcribe(input: TranscribeInput): Promise<TranscribeOutput>;
   streamGenerate(input: GenerateInput): AsyncIterable<StreamChunk>;
   streamGenerateWithContext(
     entitlement: EntitlementContext | undefined,

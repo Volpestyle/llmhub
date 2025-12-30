@@ -127,6 +127,14 @@ func (a *anthropicAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInpu
 	}
 }
 
+func (a *anthropicAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
+	return TranscribeOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Anthropic transcription is not supported",
+		Provider: a.provider,
+	}
+}
+
 func (a *anthropicAdapter) Stream(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {
 	payload := a.buildPayload(in, true)
 	usesStructuredOutput := in.ResponseFormat != nil && in.ResponseFormat.Type == "json_schema"

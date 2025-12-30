@@ -5,6 +5,7 @@ import {
   ListModelsParams,
   MeshGenerateInput,
   Provider,
+  TranscribeInput,
 } from "../core/types.js";
 import { toKitError, AiKitError } from "../core/errors.js";
 import { ErrorKind } from "../core/types.js";
@@ -12,7 +13,7 @@ import { ErrorKind } from "../core/types.js";
 export interface RequestLike {
   method?: string;
   query?: Record<string, string | string[] | undefined>;
-  body?: GenerateInput | ImageGenerateInput | MeshGenerateInput | string | null;
+  body?: GenerateInput | ImageGenerateInput | MeshGenerateInput | TranscribeInput | string | null;
   headers?: Record<string, string>;
   get?(name: string): string | undefined;
 }
@@ -72,6 +73,16 @@ export function httpHandlers(kit: Kit) {
         try {
           const input = normalizeMeshInput(req.body ?? null);
           const output = await kit.generateMesh(input);
+          res.status(200).json(output);
+        } catch (err) {
+          sendJsonError(res, err);
+        }
+      },
+    transcribe:
+      () => async (req: RequestLike, res: ResponseLike) => {
+        try {
+          const input = normalizeTranscribeInput(req.body ?? null);
+          const output = await kit.transcribe(input);
           res.status(200).json(output);
         } catch (err) {
           sendJsonError(res, err);
@@ -163,6 +174,8 @@ function toProvider(value: string): Provider | undefined {
       return Provider.XAI;
     case Provider.Ollama:
       return Provider.Ollama;
+    case Provider.Local:
+      return Provider.Local;
     default:
       return undefined;
   }
@@ -298,6 +311,50 @@ function normalizeMeshInput(payload: unknown): MeshGenerateInput {
     });
   }
   return input as unknown as MeshGenerateInput;
+}
+
+function normalizeTranscribeInput(payload: unknown): TranscribeInput {
+  let parsed: TranscribeInput | string | null | Record<string, unknown> = payload as
+    | TranscribeInput
+    | string
+    | null
+    | Record<string, unknown>;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      throw new AiKitError({
+        kind: ErrorKind.Validation,
+        message: "Body must be valid JSON",
+      });
+    }
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new AiKitError({
+      kind: ErrorKind.Validation,
+      message: "Request body must be a TranscribeInput object",
+    });
+  }
+  const input = parsed as Record<string, unknown>;
+  if (typeof input.provider !== "string") {
+    throw new AiKitError({
+      kind: ErrorKind.Validation,
+      message: "provider is required and must be a string",
+    });
+  }
+  if (typeof input.model !== "string") {
+    throw new AiKitError({
+      kind: ErrorKind.Validation,
+      message: "model is required and must be a string",
+    });
+  }
+  if (!input.audio || typeof input.audio !== "object") {
+    throw new AiKitError({
+      kind: ErrorKind.Validation,
+      message: "audio is required and must be an object",
+    });
+  }
+  return input as unknown as TranscribeInput;
 }
 
 function parseQueryPayload(req: RequestLike): unknown {

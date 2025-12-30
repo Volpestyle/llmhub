@@ -12,6 +12,8 @@ import {
   ModelMetadata,
   Provider,
   StreamChunk,
+  TranscribeInput,
+  TranscribeOutput,
 } from "../core/types.js";
 import type { ProviderAdapter } from "../core/provider.js";
 
@@ -19,13 +21,15 @@ export type FixtureKeyInput =
   | { type: "generate"; input: GenerateInput }
   | { type: "stream"; input: GenerateInput }
   | { type: "image"; input: ImageGenerateInput }
-  | { type: "mesh"; input: MeshGenerateInput };
+  | { type: "mesh"; input: MeshGenerateInput }
+  | { type: "transcribe"; input: TranscribeInput };
 
 export type FixtureEntry = {
   generate?: GenerateOutput;
   stream?: StreamChunk[];
   image?: ImageGenerateOutput;
   mesh?: MeshGenerateOutput;
+  transcribe?: TranscribeOutput;
 };
 
 export interface FixtureAdapterOptions {
@@ -41,6 +45,7 @@ export interface FixtureCalls {
   streamGenerate: GenerateInput[];
   generateImage: ImageGenerateInput[];
   generateMesh: MeshGenerateInput[];
+  transcribe: TranscribeInput[];
 }
 
 export class FixtureAdapter implements ProviderAdapter {
@@ -54,6 +59,7 @@ export class FixtureAdapter implements ProviderAdapter {
     streamGenerate: [],
     generateImage: [],
     generateMesh: [],
+    transcribe: [],
   };
 
   constructor(options: FixtureAdapterOptions) {
@@ -116,6 +122,15 @@ export class FixtureAdapter implements ProviderAdapter {
     return entry.mesh;
   }
 
+  async transcribe(input: TranscribeInput): Promise<TranscribeOutput> {
+    this.calls.transcribe.push(input);
+    const entry = this.requireFixture({ type: "transcribe", input });
+    if (!entry.transcribe) {
+      throw this.missingFixtureError("transcribe", input);
+    }
+    return entry.transcribe;
+  }
+
   private requireFixture(input: FixtureKeyInput): FixtureEntry {
     const key = this.resolveKey(input);
     const entry = this.fixtures[key];
@@ -131,7 +146,7 @@ export class FixtureAdapter implements ProviderAdapter {
 
   private missingFixtureError(
     type: FixtureKeyInput["type"],
-    input: GenerateInput | ImageGenerateInput | MeshGenerateInput,
+    input: GenerateInput | ImageGenerateInput | MeshGenerateInput | TranscribeInput,
   ): AiKitError {
     const key = this.resolveKey({ type, input } as FixtureKeyInput);
     return new AiKitError({

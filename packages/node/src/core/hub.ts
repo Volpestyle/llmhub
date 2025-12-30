@@ -20,6 +20,8 @@ import {
   ModelRecord,
   Provider,
   StreamChunk,
+  TranscribeInput,
+  TranscribeOutput,
 } from "./types.js";
 import { ErrorKind } from "./types.js";
 import { AiKitError, toKitError } from "./errors.js";
@@ -154,6 +156,28 @@ class DefaultKit implements Kit {
     }
   }
 
+  async transcribe(input: TranscribeInput): Promise<TranscribeOutput> {
+    const entitlement = this.entitlementForProvider(input.provider);
+    if (entitlement) {
+      return this.transcribeWithContext(entitlement, input);
+    }
+    const adapter = this.requireAdapter(input.provider);
+    if (!adapter.transcribe) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support transcription`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.transcribe(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(undefined, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
   streamGenerate(input: GenerateInput): AsyncIterable<StreamChunk> {
     const entitlement = this.entitlementForProvider(input.provider);
     if (entitlement) {
@@ -208,6 +232,27 @@ class DefaultKit implements Kit {
     }
     try {
       return await adapter.generateMesh(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
+  private async transcribeWithContext(
+    entitlement: EntitlementContext | undefined,
+    input: TranscribeInput,
+  ): Promise<TranscribeOutput> {
+    const adapter = this.requireAdapter(input.provider, entitlement);
+    if (!adapter.transcribe) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support transcription`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.transcribe(input);
     } catch (err) {
       const kitErr = toKitError(err);
       this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);

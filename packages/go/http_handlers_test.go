@@ -15,6 +15,7 @@ type mockKit struct {
 	generateResp GenerateOutput
 	imageResp    ImageGenerateOutput
 	meshResp     MeshGenerateOutput
+	transcribeResp TranscribeOutput
 	streamChunks []StreamChunk
 	lastListOpts *ListModelsOptions
 }
@@ -34,6 +35,10 @@ func (m *mockKit) GenerateImage(ctx context.Context, in ImageGenerateInput) (Ima
 
 func (m *mockKit) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error) {
 	return m.meshResp, nil
+}
+
+func (m *mockKit) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
+	return m.transcribeResp, nil
 }
 
 func (m *mockKit) StreamGenerate(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error) {

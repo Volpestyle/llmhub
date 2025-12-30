@@ -60,6 +60,7 @@ type ProviderAdapter interface {
 	Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error)
 	GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error)
 	GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error)
+	Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error)
 	Stream(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error)
 }
 
@@ -254,12 +255,40 @@ func (h *Kit) GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGener
 	return output, nil
 }
 
+func (h *Kit) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
+	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
+		return h.TranscribeWithContext(ctx, entitlement, in)
+	}
+	adapter, ok := h.adapters[in.Provider]
+	if !ok {
+		return TranscribeOutput{}, fmt.Errorf("provider %s is not configured", in.Provider)
+	}
+	output, err := adapter.Transcribe(ctx, in)
+	if err != nil {
+		h.registry.LearnModelUnavailable(nil, in.Provider, in.Model, err)
+		return TranscribeOutput{}, err
+	}
+	return output, nil
+}
+
 func (h *Kit) GenerateMeshWithContext(ctx context.Context, entitlement *EntitlementContext, in MeshGenerateInput) (MeshGenerateOutput, error) {
 	adapter, err := h.factory(in.Provider, entitlement)
 	if err != nil {
 		return MeshGenerateOutput{}, err
 	}
 	output, err := adapter.GenerateMesh(ctx, in)
+	if err != nil {
+		h.registry.LearnModelUnavailable(entitlement, in.Provider, in.Model, err)
+	}
+	return output, err
+}
+
+func (h *Kit) TranscribeWithContext(ctx context.Context, entitlement *EntitlementContext, in TranscribeInput) (TranscribeOutput, error) {
+	adapter, err := h.factory(in.Provider, entitlement)
+	if err != nil {
+		return TranscribeOutput{}, err
+	}
+	output, err := adapter.Transcribe(ctx, in)
 	if err != nil {
 		h.registry.LearnModelUnavailable(entitlement, in.Provider, in.Model, err)
 	}
