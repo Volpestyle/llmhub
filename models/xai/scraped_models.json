@@ -1,0 +1,156 @@
+[
+  {
+    "id": "grok-4-1-fast-reasoning",
+    "provider": "xai",
+    "displayName": "grok-4-1-fast-reasoning",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 0.5
+    },
+    "contextWindow": 2000000,
+    "capabilities": {
+      "text": true,
+      "structured_output": true,
+      "reasoning": true,
+      "image": false
+    }
+  },
+  {
+    "id": "grok-4-1-fast-non-reasoning",
+    "provider": "xai",
+    "displayName": "grok-4-1-fast-non-reasoning",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 0.5
+    },
+    "contextWindow": 2000000,
+    "capabilities": {
+      "text": true,
+      "structured_output": false,
+      "reasoning": false,
+      "image": false
+    }
+  },
+  {
+    "id": "grok-code-fast-1",
+    "provider": "xai",
+    "displayName": "grok-code-fast-1",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 1.5
+    },
+    "contextWindow": 256000,
+    "capabilities": {
+      "text": true,
+      "structured_output": false,
+      "reasoning": false,
+      "image": false
+    }
+  },
+  {
+    "id": "grok-4-fast-reasoning",
+    "provider": "xai",
+    "displayName": "grok-4-fast-reasoning",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 0.5
+    },
+    "contextWindow": 2000000,
+    "capabilities": {
+      "text": true,
+      "structured_output": true,
+      "reasoning": true,
+      "image": false
+    }
+  },
+  {
+    "id": "grok-4-fast-non-reasoning",
+    "provider": "xai",
+    "displayName": "grok-4-fast-non-reasoning",
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 0.5
+    },
+    "contextWindow": 2000000,
+    "capabilities": {
+      "text": true,
+      "structured_output": false,
+      "reasoning": false,
+      "image": false
+    }
+  },
+  {
+    "id": "grok-4-0709",
+    "provider": "xai",
+    "displayName": "grok-4-0709",
+    "tokenPrices": {
+      "input": 3,
+      "output": 15
+    },
+    "contextWindow": 256000,
+    "capabilities": {
+      "text": true,
+      "structured_output": false,
+      "reasoning": false,
+      "image": false
+    }
+  },
+  {
+    "id": "grok-3-mini",
+    "provider": "xai",
+    "displayName": "grok-3-mini",
+    "tokenPrices": {
+      "input": 0.3,
+      "output": 0.5
+    },
+    "contextWindow": 131072,
+    "capabilities": {
+      "text": true,
+      "structured_output": false,
+      "reasoning": false,
+      "image": false
+    }
+  },
+  {
+    "id": "grok-3",
+    "provider": "xai",
+    "displayName": "grok-3",
+    "tokenPrices": {
+      "input": 3,
+      "output": 15
+    },
+    "contextWindow": 131072,
+    "capabilities": {
+      "text": true,
+      "structured_output": false,
+      "reasoning": false,
+      "image": false
+    }
+  },
+  {
+    "id": "grok-2-vision-1212",
+    "provider": "xai",
+    "displayName": "grok-2-vision-1212",
+    "tokenPrices": {
+      "input": 2,
+      "output": 10
+    },
+    "contextWindow": 32768,
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "structured_output": false,
+      "reasoning": false,
+      "image": false
+    }
+  },
+  {
+    "id": "grok-2-image-1212",
+    "provider": "xai",
+    "displayName": "grok-2-image-1212",
+    "capabilities": {
+      "vision": true,
+      "image": true
+    }
+  }
+]

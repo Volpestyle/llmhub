@@ -4,118 +4,125 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .errors import ErrorKind, KitErrorPayload, InferenceKitError
+from .local.registry import REGISTRY
+from .local import models as _local_models  # register local models
 from .types import ModelCapabilities, ModelMetadata, TokenPrices
 
-_catalog_cache: Optional[List[ModelMetadata]] = None
+_TASK_FAMILY = {
+    "image-segmentation": "cutout",
+    "depth-estimation": "depth",
+    "novel-view": "views",
+}
 
 
-def _shared_catalog_path() -> Path:
+def _models_root() -> Path:
     here = Path(__file__).resolve()
-    return here.parents[4] / "models" / "catalog_models.json"
+    return here.parents[4] / "models"
 
 
-def _local_catalog_path() -> Path:
-    return Path(__file__).with_name("catalog_models.json")
+def _local_models_root() -> Path:
+    return Path(__file__).with_name("models")
 
 
-def _parse_catalog_model(entry: Dict[str, Any]) -> Optional[ModelMetadata]:
-    model_id = entry.get("id")
-    if not model_id:
-        return None
-    capabilities = entry.get("capabilities") or {}
-    token_prices = entry.get("tokenPrices")
-    return ModelMetadata(
-        id=str(model_id),
-        displayName=str(entry.get("displayName") or model_id),
-        provider=str(entry.get("provider") or "catalog"),
-        capabilities=ModelCapabilities(
-            text=bool(capabilities.get("text")),
-            vision=bool(capabilities.get("vision")),
-            tool_use=bool(capabilities.get("tool_use")),
-            structured_output=bool(capabilities.get("structured_output")),
-            reasoning=bool(capabilities.get("reasoning")),
-        ),
-        family=str(entry.get("family")) if entry.get("family") else None,
-        contextWindow=entry.get("contextWindow") if isinstance(entry.get("contextWindow"), int) else None,
-        tokenPrices=TokenPrices(
-            input=token_prices.get("input"),
-            output=token_prices.get("output"),
-        )
-        if isinstance(token_prices, dict)
-        else None,
-        deprecated=entry.get("deprecated") if "deprecated" in entry else None,
-        inPreview=entry.get("inPreview") if "inPreview" in entry else None,
+def _parse_capabilities(raw: Any) -> ModelCapabilities:
+    caps = raw if isinstance(raw, dict) else {}
+    return ModelCapabilities(
+        text=bool(caps.get("text")),
+        vision=bool(caps.get("vision")),
+        image=bool(caps.get("image")),
+        tool_use=bool(caps.get("tool_use")),
+        structured_output=bool(caps.get("structured_output")),
+        reasoning=bool(caps.get("reasoning")),
     )
 
 
-def load_catalog_models() -> List[ModelMetadata]:
-    global _catalog_cache
-    if _catalog_cache is not None:
-        return _catalog_cache
-    for path in (_shared_catalog_path(), _local_catalog_path()):
-        try:
-            raw = path.read_text(encoding="utf-8")
-            data = json.loads(raw)
-            if isinstance(data, list):
-                models: List[ModelMetadata] = []
-                for entry in data:
-                    if not isinstance(entry, dict):
-                        continue
-                    model = _parse_catalog_model(entry)
-                    if model is not None:
-                        models.append(model)
-                _catalog_cache = models
-                return _catalog_cache
-        except Exception:
+def _parse_token_prices(raw: Any) -> Optional[TokenPrices]:
+    if not isinstance(raw, dict):
+        return None
+    return TokenPrices(input=raw.get("input"), output=raw.get("output"))
+
+
+def _load_models_file(path: Path, provider_override: Optional[str] = None) -> List[ModelMetadata]:
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if not isinstance(data, list):
+        return []
+    models: List[ModelMetadata] = []
+    for entry in data:
+        if not isinstance(entry, dict):
             continue
-    _catalog_cache = []
-    return _catalog_cache
-
-
-def has_catalog_models() -> bool:
-    return len(load_catalog_models()) > 0
-
-
-class CatalogAdapter:
-    def __init__(self, models: List[ModelMetadata]) -> None:
-        self._models = list(models)
-
-    def list_models(self) -> List[ModelMetadata]:
-        return list(self._models)
-
-    def generate(self, *_args, **_kwargs):
-        raise InferenceKitError(
-            KitErrorPayload(
-                kind=ErrorKind.UNSUPPORTED,
-                message="Catalog provider does not support generate",
-                provider="catalog",
+        provider = provider_override or entry.get("provider")
+        model_id = entry.get("id")
+        if not provider or not model_id:
+            continue
+        capabilities = _parse_capabilities(entry.get("capabilities"))
+        token_prices = _parse_token_prices(entry.get("tokenPrices"))
+        models.append(
+            ModelMetadata(
+                id=str(model_id),
+                displayName=str(entry.get("displayName") or model_id),
+                provider=str(provider),
+                capabilities=capabilities,
+                family=str(entry.get("family")) if entry.get("family") else None,
+                contextWindow=entry.get("contextWindow")
+                if isinstance(entry.get("contextWindow"), int)
+                else None,
+                tokenPrices=token_prices,
+                deprecated=entry.get("deprecated") if "deprecated" in entry else None,
+                inPreview=entry.get("inPreview") if "inPreview" in entry else None,
             )
         )
+    return models
 
-    def generate_image(self, *_args, **_kwargs):
-        raise InferenceKitError(
-            KitErrorPayload(
-                kind=ErrorKind.UNSUPPORTED,
-                message="Catalog provider does not support image generation",
+
+def _resolve_models_file(filename: str) -> Optional[Path]:
+    for root in (_models_root(), _local_models_root()):
+        candidate = root / filename
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _load_local_catalog_models() -> List[ModelMetadata]:
+    models: List[ModelMetadata] = []
+    for spec in REGISTRY.list():
+        family = _TASK_FAMILY.get(spec.task)
+        if not family:
+            continue
+        models.append(
+            ModelMetadata(
+                id=spec.id,
+                displayName=spec.id,
                 provider="catalog",
+                family=family,
+                capabilities=ModelCapabilities(
+                    text=False,
+                    vision=False,
+                    image=True,
+                    tool_use=False,
+                    structured_output=False,
+                    reasoning=False,
+                ),
             )
         )
+    return models
 
-    def generate_mesh(self, *_args, **_kwargs):
-        raise InferenceKitError(
-            KitErrorPayload(
-                kind=ErrorKind.UNSUPPORTED,
-                message="Catalog provider does not support mesh generation",
-                provider="catalog",
-            )
-        )
 
-    def stream_generate(self, *_args, **_kwargs):
-        raise InferenceKitError(
-            KitErrorPayload(
-                kind=ErrorKind.UNSUPPORTED,
-                message="Catalog provider does not support streaming",
-                provider="catalog",
-            )
-        )
+def load_catalog_models() -> List[ModelMetadata]:
+    """
+    Load models that we explicitly catalog for UI selection and pipelines.
+
+    - Local pipeline models are mapped to provider="catalog".
+    - Manual provider catalogs (replicate/meshy) are loaded from JSON files.
+    """
+    models = _load_local_catalog_models()
+    for provider, filename in (("replicate", "replicate_models.json"), ("meshy", "meshy_models.json")):
+        path = _resolve_models_file(filename)
+        if not path:
+            continue
+        models.extend(_load_models_file(path, provider_override=provider))
+    return models

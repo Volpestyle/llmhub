@@ -1,0 +1,200 @@
+[
+  {
+    "id": "gemini-3-pro-preview",
+    "provider": "google",
+    "displayName": "Gemini 3 Pro Preview",
+    "tokenPrices": {
+      "input": 2000,
+      "output": 12000
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-3-flash-preview",
+    "provider": "google",
+    "displayName": "Gemini 3 Flash Preview",
+    "tokenPrices": {
+      "input": 500,
+      "output": 3000
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-3-pro-image-preview",
+    "provider": "google",
+    "displayName": "Gemini 3 Pro Image Preview \ud83c\udf4c",
+    "tokenPrices": {
+      "input": 2000,
+      "output": 12000
+    },
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": true
+    }
+  },
+  {
+    "id": "gemini-2.5-pro",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Pro",
+    "tokenPrices": {
+      "input": 1250,
+      "output": 10000
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-2.5-flash",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash",
+    "tokenPrices": {
+      "input": 300,
+      "output": 2500
+    },
+    "contextWindow": 1000000,
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-2.5-flash-lite",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash-Lite",
+    "tokenPrices": {
+      "input": 100,
+      "output": 400
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-2.5-flash-native-audio-preview-12-2025",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash Native Audio (Live API)",
+    "tokenPrices": {
+      "input": 500,
+      "output": 2000
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-2.5-flash-image",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash Image \ud83c\udf4c",
+    "tokenPrices": {
+      "input": 300,
+      "output": 39
+    },
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": true
+    }
+  },
+  {
+    "id": "gemini-2.5-flash-preview-tts",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Flash Preview TTS",
+    "tokenPrices": {
+      "input": 500,
+      "output": 10000
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-2.5-pro-preview-tts",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Pro Preview TTS",
+    "tokenPrices": {
+      "input": 100,
+      "output": 20000
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-2.0-flash",
+    "provider": "google",
+    "displayName": "Gemini 2.0 Flash",
+    "tokenPrices": {
+      "input": 100,
+      "output": 400
+    },
+    "contextWindow": 1000000,
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-2.0-flash-lite",
+    "provider": "google",
+    "displayName": "Gemini 2.0 Flash-Lite",
+    "tokenPrices": {
+      "input": 75,
+      "output": 300
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-embedding-001",
+    "provider": "google",
+    "displayName": "Gemini Embedding",
+    "tokenPrices": {
+      "input": 150
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-robotics-er-1.5-preview",
+    "provider": "google",
+    "displayName": "Gemini Robotics-ER 1.5 Preview",
+    "tokenPrices": {
+      "input": 300,
+      "output": 2500
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gemini-2.5-computer-use-preview-10-2025",
+    "provider": "google",
+    "displayName": "Gemini 2.5 Computer Use Preview",
+    "tokenPrices": {
+      "input": 1250,
+      "output": 10000
+    },
+    "capabilities": {
+      "text": true,
+      "image": false
+    }
+  }
+]

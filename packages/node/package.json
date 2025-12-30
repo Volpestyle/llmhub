@@ -28,7 +28,7 @@
     "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "test:watch": "vitest watch",
-    "refresh:models": "tsx scripts/refreshCuratedModels.ts"
+    "refresh:models": "tsx scripts/refreshScrapedModels.ts"
   },
   "dependencies": {},
   "devDependencies": {

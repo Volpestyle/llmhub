@@ -1,0 +1,38 @@
+[
+  {
+    "id": "gpt-4",
+    "provider": "openai",
+    "displayName": "GPT-4",
+    "tokenPrices": {
+      "input": 0.03,
+      "output": 0.06
+    },
+    "contextWindow": 8192,
+    "capabilities": {
+      "text": true,
+      "vision": false,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": true,
+      "image": false
+    }
+  },
+  {
+    "id": "gpt-3.5-turbo",
+    "provider": "openai",
+    "displayName": "GPT-3.5 Turbo",
+    "tokenPrices": {
+      "input": 0.01,
+      "output": 0.02
+    },
+    "contextWindow": 4096,
+    "capabilities": {
+      "text": true,
+      "vision": false,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": true,
+      "image": false
+    }
+  }
+]

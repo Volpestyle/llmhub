@@ -27,30 +27,49 @@ var curatedModels []curatedModel
 
 func loadCuratedModels() []curatedModel {
 	curatedOnce.Do(func() {
-		path := curatedModelsPath()
-		if path == "" {
+		root := modelsRoot()
+		if root == "" {
 			curatedModels = []curatedModel{}
 			return
 		}
-		raw, err := os.ReadFile(path)
+		entries, err := os.ReadDir(root)
 		if err != nil {
 			curatedModels = []curatedModel{}
 			return
 		}
-		if err := json.Unmarshal(raw, &curatedModels); err != nil {
-			curatedModels = []curatedModel{}
-			return
+		output := make([]curatedModel, 0)
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			provider := entry.Name()
+			path := filepath.Join(root, provider, "scraped_models.json")
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				continue
+			}
+			var models []curatedModel
+			if err := json.Unmarshal(raw, &models); err != nil {
+				continue
+			}
+			for i := range models {
+				if models[i].Provider == "" {
+					models[i].Provider = Provider(provider)
+				}
+				output = append(output, models[i])
+			}
 		}
+		curatedModels = output
 	})
 	return curatedModels
 }
 
-func curatedModelsPath() string {
+func modelsRoot() string {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
 		return ""
 	}
-	return filepath.Join(filepath.Dir(filename), "..", "..", "models", "curated_models.json")
+	return filepath.Join(filepath.Dir(filename), "..", "..", "models")
 }
 
 func normalizeModelID(provider Provider, modelID string) string {

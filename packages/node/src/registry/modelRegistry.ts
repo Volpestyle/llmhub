@@ -1,5 +1,5 @@
 import { AdapterMap, ProviderAdapter } from "../core/provider.js";
-import { InferenceKitError, toKitError } from "../core/errors.js";
+import { AiKitError, toKitError } from "../core/errors.js";
 import { fingerprintApiKey } from "../core/entitlements.js";
 import {
   EntitlementContext,
@@ -56,7 +56,7 @@ export class ModelRegistry {
       (p): p is Provider => Boolean(p),
     );
     if (providers.length === 0) {
-      throw new InferenceKitError({
+      throw new AiKitError({
         kind: ErrorKind.Validation,
         message: "No providers configured",
       });
@@ -74,7 +74,7 @@ export class ModelRegistry {
       (p): p is Provider => Boolean(p),
     );
     if (providers.length === 0) {
-      throw new InferenceKitError({
+      throw new AiKitError({
         kind: ErrorKind.Validation,
         message: "No providers configured",
       });
@@ -154,7 +154,7 @@ export class ModelRegistry {
   ): Promise<CacheEntry> {
     const adapter = this.resolveAdapter(provider, entitlement);
     if (!adapter) {
-      throw new InferenceKitError({
+      throw new AiKitError({
         kind: ErrorKind.Validation,
         message: `Provider ${provider} is not configured`,
       });
@@ -286,7 +286,7 @@ function learnReason(err: unknown): string | undefined {
   if (!err) {
     return undefined;
   }
-  if (err instanceof InferenceKitError) {
+  if (err instanceof AiKitError) {
     if (err.kind === ErrorKind.ProviderNotFound || err.kind === ErrorKind.Validation) {
       return err.message;
     }

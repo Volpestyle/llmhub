@@ -9,10 +9,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": true
+      "reasoning": true,
+      "image": false
     },
     "contextWindow": 128000,
-    "tokenPrices": { "input": 5.0, "output": 15.0 },
+    "tokenPrices": {
+      "input": 5.0,
+      "output": 15.0
+    },
     "deprecated": false,
     "inPreview": false
   },
@@ -26,10 +30,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": false
+      "reasoning": false,
+      "image": false
     },
     "contextWindow": 128000,
-    "tokenPrices": { "input": 0.15, "output": 0.6 },
+    "tokenPrices": {
+      "input": 0.15,
+      "output": 0.6
+    },
     "deprecated": false,
     "inPreview": false
   },
@@ -43,10 +51,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": true
+      "reasoning": true,
+      "image": false
     },
     "contextWindow": 200000,
-    "tokenPrices": { "input": 5.0, "output": 15.0 },
+    "tokenPrices": {
+      "input": 5.0,
+      "output": 15.0
+    },
     "deprecated": false,
     "inPreview": true
   },
@@ -60,10 +72,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": false
+      "reasoning": false,
+      "image": false
     },
     "contextWindow": 200000,
-    "tokenPrices": { "input": 0.3, "output": 1.2 },
+    "tokenPrices": {
+      "input": 0.3,
+      "output": 1.2
+    },
     "deprecated": false,
     "inPreview": true
   },
@@ -77,10 +93,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": false
+      "reasoning": false,
+      "image": false
     },
     "contextWindow": 200000,
-    "tokenPrices": { "input": 0.05, "output": 0.2 },
+    "tokenPrices": {
+      "input": 0.05,
+      "output": 0.2
+    },
     "deprecated": false,
     "inPreview": true
   },
@@ -94,10 +114,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": true
+      "reasoning": true,
+      "image": false
     },
     "contextWindow": 200000,
-    "tokenPrices": { "input": 3.0, "output": 15.0 },
+    "tokenPrices": {
+      "input": 3.0,
+      "output": 15.0
+    },
     "deprecated": false,
     "inPreview": false
   },
@@ -111,10 +135,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": false
+      "reasoning": false,
+      "image": false
     },
     "contextWindow": 200000,
-    "tokenPrices": { "input": 1.0, "output": 5.0 },
+    "tokenPrices": {
+      "input": 1.0,
+      "output": 5.0
+    },
     "deprecated": false,
     "inPreview": false
   },
@@ -128,10 +156,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": true
+      "reasoning": true,
+      "image": false
     },
     "contextWindow": 131072,
-    "tokenPrices": { "input": 1.0, "output": 2.0 },
+    "tokenPrices": {
+      "input": 1.0,
+      "output": 2.0
+    },
     "deprecated": false,
     "inPreview": true
   },
@@ -145,10 +177,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": false
+      "reasoning": false,
+      "image": false
     },
     "contextWindow": 131072,
-    "tokenPrices": { "input": 0.2, "output": 0.4 },
+    "tokenPrices": {
+      "input": 0.2,
+      "output": 0.4
+    },
     "deprecated": false,
     "inPreview": false
   },
@@ -162,10 +198,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": true
+      "reasoning": true,
+      "image": false
     },
     "contextWindow": 1000000,
-    "tokenPrices": { "input": 1.25, "output": 5.0 },
+    "tokenPrices": {
+      "input": 1.25,
+      "output": 5.0
+    },
     "deprecated": false,
     "inPreview": false
   },
@@ -179,10 +219,14 @@
       "vision": true,
       "tool_use": true,
       "structured_output": true,
-      "reasoning": false
+      "reasoning": false,
+      "image": false
     },
     "contextWindow": 1000000,
-    "tokenPrices": { "input": 0.35, "output": 1.05 },
+    "tokenPrices": {
+      "input": 0.35,
+      "output": 1.05
+    },
     "deprecated": false,
     "inPreview": false
   }

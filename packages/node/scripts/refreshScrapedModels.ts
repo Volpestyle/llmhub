@@ -10,7 +10,7 @@ import type { BrowserContext } from "playwright";
 type Provider = "openai" | "anthropic" | "xai" | "google";
 type WaitUntilState = "load" | "domcontentloaded" | "networkidle";
 
-interface CuratedModel {
+interface ScrapedModel {
   id: string;
   provider: Provider;
   displayName?: string;
@@ -102,9 +102,11 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(scriptDir, "..", ".env") });
 dotenv.config({ path: path.join(scriptDir, "..", ".env.local") });
 
-const curatedModelsPath = fileURLToPath(
-  new URL("../../../models/curated_models.json", import.meta.url),
-);
+const modelsRoot = fileURLToPath(new URL("../../../models", import.meta.url));
+
+function scrapedModelsPath(provider: Provider): string {
+  return path.join(modelsRoot, provider, "scraped_models.json");
+}
 
 function normalizeWhitespace(input: string): string {
   return input.replace(/\s+/g, " ").trim();
@@ -251,7 +253,7 @@ function limitList(list: string[] | undefined, maxItems: number): string[] | und
 
 function formatMatchedEntry(
   record: ParsedPricing["pricing"][number],
-  match: CuratedModel,
+  match: ScrapedModel,
 ): string {
   const input = record.inputPer1M ?? "-";
   const output = record.outputPer1M ?? "-";
@@ -326,9 +328,14 @@ function normalizeModelId(provider: Provider, modelId: string): string {
   return modelId;
 }
 
-async function saveCuratedModels(models: CuratedModel[]): Promise<void> {
+async function saveScrapedModels(
+  provider: Provider,
+  models: ScrapedModel[],
+): Promise<void> {
   const next = JSON.stringify(models, null, 2) + "\n";
-  await fs.writeFile(curatedModelsPath, next, "utf-8");
+  const outputPath = scrapedModelsPath(provider);
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.writeFile(outputPath, next, "utf-8");
 }
 
 function providerWaitSelector(provider: Provider): string | undefined {
@@ -621,7 +628,7 @@ async function parsePricing(
 
 function normalizeCapabilities(
   input?: ParsedPricing["pricing"][number]["capabilities"] | null,
-): CuratedModel["capabilities"] | undefined {
+): ScrapedModel["capabilities"] | undefined {
   if (!input) {
     return undefined;
   }
@@ -643,7 +650,7 @@ function normalizeCapabilities(
 
 function normalizeTokenPrices(
   record: ParsedPricing["pricing"][number],
-): CuratedModel["tokenPrices"] | undefined {
+): ScrapedModel["tokenPrices"] | undefined {
   const input = record.inputPer1M;
   const output = record.outputPer1M;
   if (input === undefined || input === null) {
@@ -657,10 +664,10 @@ function normalizeTokenPrices(
   };
 }
 
-function mergeCuratedModel(
-  existing: CuratedModel,
+function mergeScrapedModel(
+  existing: ScrapedModel,
   record: ParsedPricing["pricing"][number],
-): CuratedModel {
+): ScrapedModel {
   const tokenPrices = normalizeTokenPrices(record);
   const capabilities = normalizeCapabilities(record.capabilities);
   return {
@@ -679,14 +686,14 @@ function mergeCuratedModel(
   };
 }
 
-function recordToCuratedModel(
+function recordToScrapedModel(
   provider: Provider,
   record: ParsedPricing["pricing"][number],
-): CuratedModel {
+): ScrapedModel {
   const tokenPrices = normalizeTokenPrices(record);
   const capabilities = normalizeCapabilities(record.capabilities);
   const modelId = record.modelId ? normalizeModelId(provider, record.modelId) : "";
-  const model: CuratedModel = {
+  const model: ScrapedModel = {
     id: modelId,
     provider,
     displayName: record.name,
@@ -704,8 +711,6 @@ function recordToCuratedModel(
 }
 
 async function main() {
-  const updatedModels: CuratedModel[] = [];
-  const indexByKey = new Map<string, number>();
   const skippedEntries: string[] = [];
   const matchedEntriesByProvider: Record<Provider, string[]> = {
     openai: [],
@@ -748,6 +753,8 @@ async function main() {
         );
       }
       const parsed = await parsePricing(source.provider, source.pricingUrl, snapshot);
+      const updatedModels: ScrapedModel[] = [];
+      const indexByKey = new Map<string, number>();
       logVerbose("Parsed pricing entries", {
         provider: source.provider,
         entries: parsed.pricing.length,
@@ -761,20 +768,26 @@ async function main() {
         const key = `${source.provider}:${normalizeName(normalizedId)}`;
         const index = indexByKey.get(key);
         if (index === undefined) {
-          const created = recordToCuratedModel(source.provider, record);
+          const created = recordToScrapedModel(source.provider, record);
           indexByKey.set(key, updatedModels.length);
           updatedModels.push(created);
           matchedEntriesByProvider[source.provider].push(
             formatMatchedEntry(record, created),
           );
         } else {
-          const merged = mergeCuratedModel(updatedModels[index], record);
+          const merged = mergeScrapedModel(updatedModels[index], record);
           updatedModels[index] = merged;
           matchedEntriesByProvider[source.provider].push(
             formatMatchedEntry(record, merged),
           );
         }
       }
+      await saveScrapedModels(source.provider, updatedModels);
+      logSuccess("Saved scraped models", {
+        provider: source.provider,
+        count: updatedModels.length,
+        path: scrapedModelsPath(source.provider),
+      });
       const matchedEntries = matchedEntriesByProvider[source.provider];
       if (matchedEntries.length) {
         logVerbose("Matched pricing entries", {
@@ -805,8 +818,7 @@ async function main() {
   );
   logInfo("Matched pricing entries", { count: totalMatched });
 
-  await saveCuratedModels(updatedModels);
-  logSuccess("Updated curated models", { count: updatedModels.length });
+  logSuccess("Updated scraped model metadata");
 }
 
 main().catch((error) => {

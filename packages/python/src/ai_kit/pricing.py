@@ -7,33 +7,59 @@ from typing import Any, Dict, List, Optional
 
 from .types import CostBreakdown, ModelCapabilities, ModelMetadata, Provider, TokenPrices, Usage
 
-_curated_cache: Optional[List[Dict[str, Any]]] = None
+_scraped_cache: Optional[List[Dict[str, Any]]] = None
 
 
-def _shared_models_path() -> Path:
+def _shared_models_dir() -> Path:
     here = Path(__file__).resolve()
-    return here.parents[4] / "models" / "curated_models.json"
+    return here.parents[4] / "models"
 
 
-def _local_models_path() -> Path:
-    return Path(__file__).with_name("curated_models.json")
+def _local_models_dir() -> Path:
+    return Path(__file__).with_name("models")
 
 
-def load_curated_models() -> List[Dict[str, Any]]:
-    global _curated_cache
-    if _curated_cache is not None:
-        return _curated_cache
-    for path in (_shared_models_path(), _local_models_path()):
+def _load_scraped_from_dir(base_dir: Path) -> List[Dict[str, Any]]:
+    if not base_dir.exists() or not base_dir.is_dir():
+        return []
+    models: List[Dict[str, Any]] = []
+    for provider_dir in base_dir.iterdir():
+        if not provider_dir.is_dir():
+            continue
+        path = provider_dir / "scraped_models.json"
+        if not path.exists():
+            continue
         try:
             raw = path.read_text(encoding="utf-8")
             data = json.loads(raw)
-            if isinstance(data, list):
-                _curated_cache = data
-                return _curated_cache
         except Exception:
             continue
-    _curated_cache = []
-    return _curated_cache
+        if not isinstance(data, list):
+            continue
+        provider = provider_dir.name
+        for entry in data:
+            if not isinstance(entry, dict):
+                continue
+            if "provider" not in entry:
+                entry = {**entry, "provider": provider}
+            models.append(entry)
+    return models
+
+
+def load_scraped_models() -> List[Dict[str, Any]]:
+    global _scraped_cache
+    if _scraped_cache is not None:
+        return _scraped_cache
+    models: List[Dict[str, Any]] = []
+    for base_dir in (_shared_models_dir(), _local_models_dir()):
+        models.extend(_load_scraped_from_dir(base_dir))
+    _scraped_cache = models
+    return _scraped_cache
+
+
+def load_curated_models() -> List[Dict[str, Any]]:
+    # Backwards-compatible alias.
+    return load_scraped_models()
 
 
 def _normalize_model_id(provider: Provider, model_id: str) -> str:
@@ -46,7 +72,7 @@ def _normalize_model_id(provider: Provider, model_id: str) -> str:
 def find_curated_model(provider: Provider, model_id: str) -> Optional[Dict[str, Any]]:
     normalized = _normalize_model_id(provider, model_id)
     best: Optional[Dict[str, Any]] = None
-    for entry in load_curated_models():
+    for entry in load_scraped_models():
         if entry.get("provider") != provider:
             continue
         entry_id = entry.get("id") or ""
@@ -67,6 +93,7 @@ def apply_curated_metadata(model: ModelMetadata) -> ModelMetadata:
         capabilities = ModelCapabilities(
             text=bool(curated_caps.get("text", capabilities.text)),
             vision=bool(curated_caps.get("vision", capabilities.vision)),
+            image=bool(curated_caps.get("image", getattr(capabilities, "image", False))),
             tool_use=bool(curated_caps.get("tool_use", capabilities.tool_use)),
             structured_output=bool(curated_caps.get("structured_output", capabilities.structured_output)),
             reasoning=bool(curated_caps.get("reasoning", capabilities.reasoning)),

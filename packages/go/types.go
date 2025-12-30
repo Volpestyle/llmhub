@@ -3,17 +3,17 @@ package aikit
 type Provider string
 
 const (
-	ProviderOpenAI    Provider = "openai"
-	ProviderAnthropic Provider = "anthropic"
-	ProviderXAI       Provider = "xai"
-	ProviderGoogle    Provider = "google"
-	ProviderCatalog   Provider = "catalog"
-	ProviderOllama    Provider = "ollama"
+	ProviderOpenAI      Provider = "openai"
+	ProviderAnthropic   Provider = "anthropic"
+	ProviderXAI         Provider = "xai"
+	ProviderGoogle      Provider = "google"
+	ProviderOllama      Provider = "ollama"
 )
 
 type ModelCapabilities struct {
 	Text             bool `json:"text"`
 	Vision           bool `json:"vision"`
+	Image            bool `json:"image,omitempty"`
 	ToolUse          bool `json:"tool_use"`
 	StructuredOutput bool `json:"structured_output"`
 	Reasoning        bool `json:"reasoning"`
@@ -34,17 +34,18 @@ type ModelMetadata struct {
 	TokenPrices   *TokenPrices      `json:"tokenPrices,omitempty"`
 	Deprecated    bool              `json:"deprecated,omitempty"`
 	InPreview     bool              `json:"inPreview,omitempty"`
+	Available     bool              `json:"available,omitempty"`
 }
 
 type EntitlementContext struct {
-	Provider         Provider `json:"provider,omitempty"`
-	APIKey           string   `json:"apiKey,omitempty"`
-	APIKeyFingerprint string  `json:"apiKeyFingerprint,omitempty"`
-	AccountID        string   `json:"accountId,omitempty"`
-	Region           string   `json:"region,omitempty"`
-	Environment      string   `json:"environment,omitempty"`
-	TenantID         string   `json:"tenantId,omitempty"`
-	UserID           string   `json:"userId,omitempty"`
+	Provider          Provider `json:"provider,omitempty"`
+	APIKey            string   `json:"apiKey,omitempty"`
+	APIKeyFingerprint string   `json:"apiKeyFingerprint,omitempty"`
+	AccountID         string   `json:"accountId,omitempty"`
+	Region            string   `json:"region,omitempty"`
+	Environment       string   `json:"environment,omitempty"`
+	TenantID          string   `json:"tenantId,omitempty"`
+	UserID            string   `json:"userId,omitempty"`
 }
 
 type ModelModalities struct {
@@ -69,41 +70,41 @@ type ModelLimits struct {
 }
 
 type ModelPricing struct {
-	Currency       string             `json:"currency"`
-	InputPer1M     float64            `json:"inputPer1M,omitempty"`
-	CachedInputPer1M float64           `json:"cachedInputPer1M,omitempty"`
-	OutputPer1M    float64            `json:"outputPer1M,omitempty"`
-	Extras         map[string]float64 `json:"extras,omitempty"`
-	EffectiveAsOf  string             `json:"effectiveAsOf,omitempty"`
-	Source         string             `json:"source,omitempty"`
+	Currency         string             `json:"currency"`
+	InputPer1M       float64            `json:"inputPer1M,omitempty"`
+	CachedInputPer1M float64            `json:"cachedInputPer1M,omitempty"`
+	OutputPer1M      float64            `json:"outputPer1M,omitempty"`
+	Extras           map[string]float64 `json:"extras,omitempty"`
+	EffectiveAsOf    string             `json:"effectiveAsOf,omitempty"`
+	Source           string             `json:"source,omitempty"`
 }
 
 type AvailabilityConfidence string
 
 const (
-	AvailabilityListed  AvailabilityConfidence = "listed"
+	AvailabilityListed   AvailabilityConfidence = "listed"
 	AvailabilityInferred AvailabilityConfidence = "inferred"
-	AvailabilityLearned AvailabilityConfidence = "learned"
+	AvailabilityLearned  AvailabilityConfidence = "learned"
 )
 
 type ModelAvailability struct {
-	Entitled      bool                  `json:"entitled"`
-	LastVerifiedAt string               `json:"lastVerifiedAt,omitempty"`
-	Confidence    AvailabilityConfidence `json:"confidence,omitempty"`
-	Reason        string                `json:"reason,omitempty"`
+	Entitled       bool                   `json:"entitled"`
+	LastVerifiedAt string                 `json:"lastVerifiedAt,omitempty"`
+	Confidence     AvailabilityConfidence `json:"confidence,omitempty"`
+	Reason         string                 `json:"reason,omitempty"`
 }
 
 type ModelRecord struct {
-	ID              string           `json:"id"`
-	Provider         Provider         `json:"provider"`
-	ProviderModelID  string           `json:"providerModelId"`
-	DisplayName      string           `json:"displayName,omitempty"`
-	Modalities       ModelModalities  `json:"modalities"`
-	Features         ModelFeatures    `json:"features"`
-	Limits           *ModelLimits     `json:"limits,omitempty"`
-	Tags             []string         `json:"tags,omitempty"`
-	Pricing          *ModelPricing    `json:"pricing,omitempty"`
-	Availability     ModelAvailability `json:"availability"`
+	ID              string            `json:"id"`
+	Provider        Provider          `json:"provider"`
+	ProviderModelID string            `json:"providerModelId"`
+	DisplayName     string            `json:"displayName,omitempty"`
+	Modalities      ModelModalities   `json:"modalities"`
+	Features        ModelFeatures     `json:"features"`
+	Limits          *ModelLimits      `json:"limits,omitempty"`
+	Tags            []string          `json:"tags,omitempty"`
+	Pricing         *ModelPricing     `json:"pricing,omitempty"`
+	Availability    ModelAvailability `json:"availability"`
 }
 
 type ContentPart struct {
@@ -173,11 +174,12 @@ type GenerateInput struct {
 }
 
 type ImageGenerateInput struct {
-	Provider    Provider    `json:"provider"`
-	Model       string      `json:"model"`
-	Prompt      string      `json:"prompt"`
-	Size        string      `json:"size,omitempty"`
+	Provider    Provider     `json:"provider"`
+	Model       string       `json:"model"`
+	Prompt      string       `json:"prompt"`
+	Size        string       `json:"size,omitempty"`
 	InputImages []ImageInput `json:"inputImages,omitempty"`
+	Parameters  map[string]interface{} `json:"parameters,omitempty"`
 }
 
 type ImageGenerateOutput struct {
@@ -188,11 +190,11 @@ type ImageGenerateOutput struct {
 }
 
 type MeshGenerateInput struct {
-	Provider    Provider    `json:"provider"`
-	Model       string      `json:"model"`
-	Prompt      string      `json:"prompt"`
+	Provider    Provider     `json:"provider"`
+	Model       string       `json:"model"`
+	Prompt      string       `json:"prompt"`
 	InputImages []ImageInput `json:"inputImages,omitempty"`
-	Format      string      `json:"format,omitempty"`
+	Format      string       `json:"format,omitempty"`
 }
 
 type MeshGenerateOutput struct {
@@ -214,19 +216,19 @@ type Usage struct {
 }
 
 type CostBreakdown struct {
-	InputCostUSD     float64      `json:"input_cost_usd,omitempty"`
-	OutputCostUSD    float64      `json:"output_cost_usd,omitempty"`
-	TotalCostUSD     float64      `json:"total_cost_usd,omitempty"`
+	InputCostUSD      float64      `json:"input_cost_usd,omitempty"`
+	OutputCostUSD     float64      `json:"output_cost_usd,omitempty"`
+	TotalCostUSD      float64      `json:"total_cost_usd,omitempty"`
 	PricingPerMillion *TokenPrices `json:"pricing_per_million,omitempty"`
 }
 
 type GenerateOutput struct {
-	Text         string      `json:"text,omitempty"`
-	ToolCalls    []ToolCall  `json:"toolCalls,omitempty"`
-	Usage        *Usage      `json:"usage,omitempty"`
-	FinishReason string      `json:"finishReason,omitempty"`
+	Text         string         `json:"text,omitempty"`
+	ToolCalls    []ToolCall     `json:"toolCalls,omitempty"`
+	Usage        *Usage         `json:"usage,omitempty"`
+	FinishReason string         `json:"finishReason,omitempty"`
 	Cost         *CostBreakdown `json:"cost,omitempty"`
-	Raw          interface{} `json:"raw,omitempty"`
+	Raw          interface{}    `json:"raw,omitempty"`
 }
 
 type StreamChunkType string
@@ -252,12 +254,12 @@ type StreamChunk struct {
 	Delta        string          `json:"delta,omitempty"`
 	Usage        *Usage          `json:"usage,omitempty"`
 	FinishReason string          `json:"finishReason,omitempty"`
-	Cost         *CostBreakdown `json:"cost,omitempty"`
+	Cost         *CostBreakdown  `json:"cost,omitempty"`
 	Error        *ChunkError     `json:"error,omitempty"`
 }
 
 type ListModelsOptions struct {
-	Providers []Provider
-	Refresh   bool
+	Providers   []Provider
+	Refresh     bool
 	Entitlement *EntitlementContext
 }

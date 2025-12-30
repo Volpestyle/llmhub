@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
@@ -24,21 +25,45 @@ interface CuratedModel {
 
 let cachedCuratedModels: CuratedModel[] | null = null;
 
-function curatedModelsPath(): string {
-  return fileURLToPath(new URL("../../../../models/curated_models.json", import.meta.url));
+function modelsRoot(): string {
+  return fileURLToPath(new URL("../../../../models", import.meta.url));
 }
 
 function loadCuratedModels(): CuratedModel[] {
   if (cachedCuratedModels) {
     return cachedCuratedModels;
   }
+  const collected: CuratedModel[] = [];
   try {
-    const raw = fs.readFileSync(curatedModelsPath(), "utf-8");
-    const parsed = JSON.parse(raw);
-    cachedCuratedModels = Array.isArray(parsed) ? (parsed as CuratedModel[]) : [];
+    const entries = fs.readdirSync(modelsRoot(), { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const provider = entry.name;
+      const filePath = path.join(modelsRoot(), provider, "scraped_models.json");
+      if (!fs.existsSync(filePath)) {
+        continue;
+      }
+      const raw = fs.readFileSync(filePath, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        continue;
+      }
+      for (const item of parsed) {
+        if (!item || typeof item !== "object") {
+          continue;
+        }
+        if (!("provider" in item)) {
+          (item as CuratedModel).provider = provider as Provider;
+        }
+        collected.push(item as CuratedModel);
+      }
+    }
   } catch {
-    cachedCuratedModels = [];
+    // ignore and return empty list
   }
+  cachedCuratedModels = collected;
   return cachedCuratedModels;
 }
 
