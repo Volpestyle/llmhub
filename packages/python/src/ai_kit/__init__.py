@@ -1,6 +1,7 @@
 from importlib import import_module
 from pkgutil import extend_path
 
+from .allowlists import list_task_models, list_transcribe_models
 from .catalog import load_catalog_models
 from .errors import AiKitError, ErrorKind
 from .registry import ModelRegistry
@@ -18,6 +19,7 @@ from .types import (
     TranscribeInput,
     TranscribeOutput,
     TranscriptSegment,
+    TranscriptWord,
     ModelConstraints,
     ModelMetadata,
     ModelRecord,
@@ -32,6 +34,8 @@ from .types import (
 __path__ = extend_path(__path__, __name__)
 
 __all__ = [
+    "list_task_models",
+    "list_transcribe_models",
     "load_catalog_models",
     "ModelRegistry",
     "CostBreakdown",
@@ -47,6 +51,7 @@ __all__ = [
     "TranscribeInput",
     "TranscribeOutput",
     "TranscriptSegment",
+    "TranscriptWord",
     "ModelConstraints",
     "ModelMetadata",
     "ModelRecord",
