@@ -29,6 +29,7 @@
     "id": "gemini-3-pro-image-preview",
     "provider": "google",
     "displayName": "Gemini 3 Pro Image Preview \ud83c\udf4c",
+    "family": "views",
     "tokenPrices": {
       "input": 2000,
       "output": 12000
@@ -96,6 +97,7 @@
     "id": "gemini-2.5-flash-image",
     "provider": "google",
     "displayName": "Gemini 2.5 Flash Image \ud83c\udf4c",
+    "family": "views",
     "tokenPrices": {
       "input": 300,
       "output": 39

@@ -139,7 +139,14 @@ export interface ImageContentPart {
   };
 }
 
-export type ContentPart = TextContentPart | ImageContentPart;
+export interface ToolUseContentPart {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: unknown;
+}
+
+export type ContentPart = TextContentPart | ImageContentPart | ToolUseContentPart;
 
 export type MessageRole = "system" | "user" | "assistant" | "tool";
 

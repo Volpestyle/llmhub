@@ -18,6 +18,11 @@ import {
   MeshGenerateInput,
   MeshGenerateOutput,
   ModelRecord,
+  OpenAIProviderConfig,
+  AnthropicProviderConfig,
+  XAIProviderConfig,
+  GoogleProviderConfig,
+  OllamaProviderConfig,
   Provider,
   StreamChunk,
   TranscribeInput,
@@ -330,7 +335,7 @@ export function createKit(config: KitConfig): Kit {
   const adapters: AdapterMap = { ...(config.adapters ?? {}) };
   const keyPools = new Map<Provider, KeyPool>();
   if (config.providers[Provider.OpenAI] && !adapters[Provider.OpenAI]) {
-    const providerConfig = config.providers[Provider.OpenAI]!;
+    const providerConfig = config.providers[Provider.OpenAI]! as OpenAIProviderConfig;
     const keys = normalizeKeys(providerConfig.apiKey, providerConfig.apiKeys);
     if (!keys.length) {
       throw new AiKitError({
@@ -345,7 +350,7 @@ export function createKit(config: KitConfig): Kit {
     keyPools.set(Provider.OpenAI, new KeyPool(keys));
   }
   if (config.providers[Provider.Anthropic] && !adapters[Provider.Anthropic]) {
-    const providerConfig = config.providers[Provider.Anthropic]!;
+    const providerConfig = config.providers[Provider.Anthropic]! as AnthropicProviderConfig;
     const keys = normalizeKeys(providerConfig.apiKey, providerConfig.apiKeys);
     if (!keys.length) {
       throw new AiKitError({
@@ -360,7 +365,7 @@ export function createKit(config: KitConfig): Kit {
     keyPools.set(Provider.Anthropic, new KeyPool(keys));
   }
   if (config.providers[Provider.XAI] && !adapters[Provider.XAI]) {
-    const providerConfig = config.providers[Provider.XAI]!;
+    const providerConfig = config.providers[Provider.XAI]! as XAIProviderConfig;
     const keys = normalizeKeys(providerConfig.apiKey, providerConfig.apiKeys);
     if (!keys.length) {
       throw new AiKitError({
@@ -375,7 +380,7 @@ export function createKit(config: KitConfig): Kit {
     keyPools.set(Provider.XAI, new KeyPool(keys));
   }
   if (config.providers[Provider.Google] && !adapters[Provider.Google]) {
-    const providerConfig = config.providers[Provider.Google]!;
+    const providerConfig = config.providers[Provider.Google]! as GoogleProviderConfig;
     const keys = normalizeKeys(providerConfig.apiKey, providerConfig.apiKeys);
     if (!keys.length) {
       throw new AiKitError({
@@ -390,7 +395,7 @@ export function createKit(config: KitConfig): Kit {
     keyPools.set(Provider.Google, new KeyPool(keys));
   }
   if (config.providers[Provider.Ollama] && !adapters[Provider.Ollama]) {
-    const providerConfig = config.providers[Provider.Ollama]!;
+    const providerConfig = config.providers[Provider.Ollama]! as OllamaProviderConfig;
     adapters[Provider.Ollama] = new OllamaAdapter(
       providerConfig,
       config.httpClient,

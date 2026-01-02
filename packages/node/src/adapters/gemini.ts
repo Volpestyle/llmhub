@@ -328,7 +328,9 @@ function buildGeminiContents(messages: GenerateInput["messages"]) {
     }
     contents.push({
       role: message.role === "assistant" ? "model" : "user",
-      parts: message.content.map((part) => {
+      parts: message.content
+        .filter((part) => part.type !== "tool_use")
+        .map((part) => {
         if (part.type === "text") {
           return { text: part.text };
         }

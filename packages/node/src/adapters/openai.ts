@@ -801,7 +801,9 @@ function mapMessagesToChat(messages: GenerateInput["messages"]) {
           .join(""),
       };
     }
-    const parts = message.content.map((part) => {
+    const parts = message.content
+      .filter((part) => part.type !== "tool_use")
+      .map((part) => {
       if (part.type === "text") {
         return { type: "text", text: part.text };
       }
@@ -829,7 +831,9 @@ function mapMessagesToChat(messages: GenerateInput["messages"]) {
 
 function mapMessagesToResponses(messages: GenerateInput["messages"]) {
   return messages.map((message) => {
-    const content = message.content.map((part) => {
+    const content = message.content
+      .filter((part) => part.type !== "tool_use")
+      .map((part) => {
       if (part.type === "text") {
         return { type: "input_text", text: part.text };
       }

@@ -30,7 +30,7 @@ export interface ModelRegistryOptions {
 export type AdapterFactory = (
   provider: Provider,
   entitlement?: EntitlementContext,
-) => ProviderAdapter;
+) => ProviderAdapter | undefined;
 
 export class ModelRegistry {
   private readonly cache = new Map<string, CacheEntry>();

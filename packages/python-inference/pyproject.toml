@@ -11,6 +11,7 @@ requires-python = ">=3.10"
 dependencies = [
   "ai-kit",
   "fal-client>=0.10.0",
+  "google-genai>=0.6.0",
   "requests>=2.31",
   "replicate>=1.0.0",
   "pillow>=10.0.0",

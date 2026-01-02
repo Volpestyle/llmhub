@@ -367,6 +367,9 @@ function splitAnthropicMessages(messages: GenerateInput["messages"]) {
         if (part.type === "text") {
           return { type: "text", text: part.text };
         }
+        if (part.type === "tool_use") {
+          return { type: "tool_use", id: part.id, name: part.name, input: part.input };
+        }
         if (part.image.base64) {
           return {
             type: "image",
