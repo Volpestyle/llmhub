@@ -5,6 +5,7 @@ export enum Provider {
   Anthropic = "anthropic",
   XAI = "xai",
   Google = "google",
+  Bedrock = "bedrock",
   Ollama = "ollama",
   Local = "local",
 }
@@ -416,11 +417,37 @@ export interface GoogleProviderConfig {
   baseURL?: string;
 }
 
+export interface BedrockProviderConfig {
+  region?: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  sessionToken?: string;
+  /**
+   * Control plane endpoint (list models). Defaults to https://bedrock.{region}.amazonaws.com
+   */
+  endpoint?: string;
+  /**
+   * Runtime endpoint (invoke/converse). Defaults to https://bedrock-runtime.{region}.amazonaws.com
+   */
+  runtimeEndpoint?: string;
+  /**
+   * Override SigV4 service name for control plane calls.
+   * Default: "bedrock".
+   */
+  controlPlaneService?: string;
+  /**
+   * Override SigV4 service name for runtime calls.
+   * Default: "bedrock-runtime".
+   */
+  runtimeService?: string;
+}
+
 export type ProviderConfigs = {
   [Provider.OpenAI]: OpenAIProviderConfig;
   [Provider.Anthropic]: AnthropicProviderConfig;
   [Provider.XAI]: XAIProviderConfig;
   [Provider.Google]: GoogleProviderConfig;
+  [Provider.Bedrock]: BedrockProviderConfig;
   [Provider.Ollama]: OllamaProviderConfig;
 };
 

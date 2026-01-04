@@ -110,7 +110,7 @@ components:
   schemas:
     Provider:
       type: string
-      enum: [openai, anthropic, google, xai, ollama, local]
+      enum: [openai, anthropic, google, bedrock, xai, ollama, local]
     ModelMetadata:
       type: object
       required: [id, displayName, provider, capabilities]

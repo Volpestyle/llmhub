@@ -42,6 +42,25 @@ out = kit.generate(
 print(out.text)
 ```
 
+## Amazon Bedrock
+```py
+from ai_kit import Kit, KitConfig
+from ai_kit.providers import BedrockConfig
+
+kit = Kit(
+    KitConfig(
+        providers={
+            "bedrock": BedrockConfig(
+                region=os.environ.get("AWS_REGION", ""),
+                access_key_id=os.environ.get("AWS_ACCESS_KEY_ID", ""),
+                secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY", ""),
+                session_token=os.environ.get("AWS_SESSION_TOKEN"),
+            )
+        }
+    )
+)
+```
+
 ## Examples
 ### Stream tokens
 ```py

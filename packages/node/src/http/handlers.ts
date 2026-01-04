@@ -170,6 +170,8 @@ function toProvider(value: string): Provider | undefined {
       return Provider.Anthropic;
     case Provider.Google:
       return Provider.Google;
+    case Provider.Bedrock:
+      return Provider.Bedrock;
     case Provider.XAI:
       return Provider.XAI;
     case Provider.Ollama:

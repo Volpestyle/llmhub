@@ -5,7 +5,7 @@ from typing import Callable, Dict
 
 from .errors import ErrorKind, KitErrorPayload, AiKitError, to_kit_error
 from .entitlements import fingerprint_api_key
-from .pricing import estimate_cost
+from .pricing import estimate_cost, estimate_transcribe_cost
 from .registry import ModelRegistry
 from .types import (
     EntitlementContext,
@@ -30,6 +30,8 @@ from .providers import (
     XAIConfig,
     OllamaAdapter,
     OllamaConfig,
+    BedrockAdapter,
+    BedrockConfig,
 )
 
 
@@ -196,7 +198,8 @@ class Kit:
                 )
             )
         try:
-            return adapter.transcribe(input)
+            output = adapter.transcribe(input)
+            return _attach_transcribe_cost(input, output)
         except Exception as err:
             kit_err = to_kit_error(err)
             self._registry.learn_model_unavailable(None, input.provider, input.model, kit_err)
@@ -214,7 +217,8 @@ class Kit:
                 )
             )
         try:
-            return adapter.transcribe(input)
+            output = adapter.transcribe(input)
+            return _attach_transcribe_cost(input, output)
         except Exception as err:
             kit_err = to_kit_error(err)
             self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
@@ -243,6 +247,8 @@ class Kit:
             adapters["google"] = GeminiAdapter(providers["google"])
         if "xai" in providers:
             adapters["xai"] = XAIAdapter(providers["xai"])
+        if "bedrock" in providers:
+            adapters["bedrock"] = BedrockAdapter(providers["bedrock"])
         if "ollama" in providers:
             adapters["ollama"] = OllamaAdapter(providers["ollama"])
         return adapters
@@ -252,7 +258,7 @@ class Kit:
         normalized: Dict[Provider, object] = {}
         for provider, cfg in providers.items():
             keys = self._collect_keys(cfg)
-            if provider == "ollama":
+            if provider in ("ollama", "bedrock"):
                 if keys:
                     key_pools[provider] = _KeyPool(keys)
                     normalized[provider] = self._with_api_key(cfg, keys[0])
@@ -348,6 +354,19 @@ class Kit:
                 timeout=getattr(base_config, "timeout", None),
             )
             return XAIAdapter(config)
+        if provider == "bedrock":
+            config = BedrockConfig(
+                region=getattr(base_config, "region", ""),
+                access_key_id=getattr(base_config, "access_key_id", ""),
+                secret_access_key=getattr(base_config, "secret_access_key", ""),
+                session_token=getattr(base_config, "session_token", None),
+                endpoint=getattr(base_config, "endpoint", ""),
+                runtime_endpoint=getattr(base_config, "runtime_endpoint", ""),
+                control_plane_service=getattr(base_config, "control_plane_service", "bedrock"),
+                runtime_service=getattr(base_config, "runtime_service", "bedrock-runtime"),
+                timeout=getattr(base_config, "timeout", None),
+            )
+            return BedrockAdapter(config)
         if provider == "ollama":
             config = OllamaConfig(
                 api_key=entitlement.apiKey,
@@ -372,6 +391,34 @@ class Kit:
 
 def _attach_cost(input: GenerateInput, output: GenerateOutput) -> GenerateOutput:
     cost = estimate_cost(input.provider, input.model, output.usage)
+    if cost is None:
+        return output
+    return replace(output, cost=cost)
+
+
+def _transcribe_duration_seconds(output: TranscribeOutput) -> float | None:
+    duration = getattr(output, "duration", None)
+    if isinstance(duration, (int, float)):
+        if duration >= 0:
+            return float(duration)
+    max_end: float | None = None
+    for segments in (getattr(output, "segments", None), getattr(output, "words", None)):
+        if not segments:
+            continue
+        for segment in segments:
+            end = getattr(segment, "end", None)
+            if isinstance(end, (int, float)):
+                value = float(end)
+                if max_end is None or value > max_end:
+                    max_end = value
+    return max_end
+
+
+def _attach_transcribe_cost(input: TranscribeInput, output: TranscribeOutput) -> TranscribeOutput:
+    if getattr(output, "cost", None) is not None:
+        return output
+    duration = _transcribe_duration_seconds(output)
+    cost = estimate_transcribe_cost(input.provider, input.model, duration)
     if cost is None:
         return output
     return replace(output, cost=cost)

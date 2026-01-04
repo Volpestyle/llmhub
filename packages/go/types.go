@@ -3,12 +3,13 @@ package aikit
 type Provider string
 
 const (
-	ProviderOpenAI      Provider = "openai"
-	ProviderAnthropic   Provider = "anthropic"
-	ProviderXAI         Provider = "xai"
-	ProviderGoogle      Provider = "google"
-	ProviderOllama      Provider = "ollama"
-	ProviderLocal       Provider = "local"
+	ProviderOpenAI    Provider = "openai"
+	ProviderAnthropic Provider = "anthropic"
+	ProviderXAI       Provider = "xai"
+	ProviderGoogle    Provider = "google"
+	ProviderBedrock   Provider = "bedrock"
+	ProviderOllama    Provider = "ollama"
+	ProviderLocal     Provider = "local"
 )
 
 type ModelCapabilities struct {
@@ -183,11 +184,11 @@ type GenerateInput struct {
 }
 
 type ImageGenerateInput struct {
-	Provider    Provider     `json:"provider"`
-	Model       string       `json:"model"`
-	Prompt      string       `json:"prompt"`
-	Size        string       `json:"size,omitempty"`
-	InputImages []ImageInput `json:"inputImages,omitempty"`
+	Provider    Provider               `json:"provider"`
+	Model       string                 `json:"model"`
+	Prompt      string                 `json:"prompt"`
+	Size        string                 `json:"size,omitempty"`
+	InputImages []ImageInput           `json:"inputImages,omitempty"`
 	Parameters  map[string]interface{} `json:"parameters,omitempty"`
 }
 

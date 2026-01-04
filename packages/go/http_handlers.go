@@ -156,6 +156,8 @@ func parseProviders(value string) []Provider {
 			providers = append(providers, ProviderAnthropic)
 		case string(ProviderGoogle):
 			providers = append(providers, ProviderGoogle)
+		case string(ProviderBedrock):
+			providers = append(providers, ProviderBedrock)
 		case string(ProviderXAI):
 			providers = append(providers, ProviderXAI)
 		case string(ProviderOllama):

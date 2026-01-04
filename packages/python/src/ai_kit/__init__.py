@@ -93,6 +93,8 @@ _optional(
         "XAIConfig",
         "OllamaAdapter",
         "OllamaConfig",
+        "BedrockAdapter",
+        "BedrockConfig",
     ],
 )
 _optional(".http_asgi", ["create_asgi_app"])

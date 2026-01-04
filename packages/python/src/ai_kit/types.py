@@ -269,6 +269,7 @@ class TranscribeOutput:
     segments: Optional[List[TranscriptSegment]] = None
     words: Optional[List[TranscriptWord]] = None
     raw: Optional[Any] = None
+    cost: Optional[CostBreakdown] = None
 
 
 @dataclass

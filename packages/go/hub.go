@@ -13,6 +13,7 @@ type Config struct {
 	Anthropic      *AnthropicConfig
 	XAI            *XAIConfig
 	Google         *GoogleConfig
+	Bedrock        *BedrockConfig
 	Ollama         *OllamaConfig
 	HTTPClient     *http.Client
 	RegistryTTL    time.Duration
@@ -46,6 +47,17 @@ type GoogleConfig struct {
 	APIKey  string
 	APIKeys []string
 	BaseURL string
+}
+
+type BedrockConfig struct {
+	Region              string
+	AccessKeyID         string
+	SecretAccessKey     string
+	SessionToken        string
+	Endpoint            string
+	RuntimeEndpoint     string
+	ControlPlaneService string
+	RuntimeService      string
 }
 
 type OllamaConfig struct {
@@ -126,6 +138,14 @@ func New(config Config) (*Kit, error) {
 		cfg.APIKey = keys[0]
 		adapters[ProviderGoogle] = newGoogleAdapter(&cfg, client)
 		keyPools[ProviderGoogle] = newKeyPool(keys)
+	}
+	if config.Bedrock != nil && adapters[ProviderBedrock] == nil {
+		cfg, err := resolveBedrockConfig(config.Bedrock)
+		if err != nil {
+			return nil, err
+		}
+		config.Bedrock = cfg
+		adapters[ProviderBedrock] = newBedrockAdapter(cfg, client)
 	}
 	if config.Ollama != nil && adapters[ProviderOllama] == nil {
 		cfg := *config.Ollama
@@ -401,6 +421,15 @@ func newAdapterFactory(config Config, client *http.Client, adapters map[Provider
 			cfg := *config.Google
 			cfg.APIKey = apiKey
 			return newGoogleAdapter(&cfg, client), nil
+		case ProviderBedrock:
+			if config.Bedrock == nil {
+				return nil, fmt.Errorf("bedrock config is not available")
+			}
+			cfg, err := resolveBedrockConfig(config.Bedrock)
+			if err != nil {
+				return nil, err
+			}
+			return newBedrockAdapter(cfg, client), nil
 		case ProviderOllama:
 			if config.Ollama == nil {
 				return nil, fmt.Errorf("ollama config is not available")

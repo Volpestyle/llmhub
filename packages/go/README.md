@@ -42,8 +42,20 @@ func main() {
     panic(err)
   }
 
-  fmt.Println(out.Text)
+fmt.Println(out.Text)
 }
+```
+
+## Amazon Bedrock
+```go
+kit, err := aikit.New(aikit.Config{
+  Bedrock: &aikit.BedrockConfig{
+    Region:          os.Getenv("AWS_REGION"),
+    AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
+    SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
+    SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
+  },
+})
 ```
 
 ## Examples

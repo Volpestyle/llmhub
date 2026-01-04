@@ -5,7 +5,7 @@ wiring HTTP endpoints to a Kit instance, and Python ships an ASGI adapter for th
 For SSE, the ASGI adapter is a good fit because it supports native streaming.
 
 ## Suggested endpoints
-- `GET /provider-models` -> list models (query `providers=openai,anthropic,google,xai,ollama,local` and `refresh=true` to bypass cache)
+- `GET /provider-models` -> list models (query `providers=openai,anthropic,google,bedrock,xai,ollama,local` and `refresh=true` to bypass cache)
 - `POST /generate` -> text generation
 - `POST /image` -> image generation
 - `POST /mesh` -> mesh generation
@@ -14,7 +14,7 @@ For SSE, the ASGI adapter is a good fit because it supports native streaming.
 
 ## Example: list models
 ```bash
-curl "http://localhost:3000/provider-models?providers=openai,anthropic,ollama"
+curl "http://localhost:3000/provider-models?providers=openai,anthropic,bedrock,ollama"
 ```
 
 Add `refresh=true` to bypass the registry cache.

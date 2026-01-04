@@ -25,6 +25,20 @@ const output = await kit.generate({
 console.log(output.text);
 ```
 
+## Amazon Bedrock
+```ts
+const kit = createKit({
+  providers: {
+    [Provider.Bedrock]: {
+      region: process.env.AWS_REGION ?? "",
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "",
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "",
+      sessionToken: process.env.AWS_SESSION_TOKEN,
+    },
+  },
+});
+```
+
 ## Examples
 ### Stream tokens in-process
 ```ts

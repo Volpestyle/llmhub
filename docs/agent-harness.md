@@ -18,6 +18,12 @@ kit, err := aikit.New(aikit.Config{
   OpenAI:    &aikit.OpenAIConfig{APIKey: os.Getenv("OPENAI_API_KEY")},
   Anthropic: &aikit.AnthropicConfig{APIKey: os.Getenv("ANTHROPIC_API_KEY")},
   Google:    &aikit.GoogleConfig{APIKey: os.Getenv("GOOGLE_API_KEY")},
+  Bedrock: &aikit.BedrockConfig{
+    Region:          os.Getenv("AWS_REGION"),
+    AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
+    SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
+    SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
+  },
   Ollama:    &aikit.OllamaConfig{BaseURL: "http://localhost:11434"},
   RegistryTTL: 15 * time.Minute,
 })
@@ -41,6 +47,7 @@ records, err := kit.ListModelRecords(ctx, &aikit.ListModelsOptions{
     aikit.ProviderOpenAI,
     aikit.ProviderAnthropic,
     aikit.ProviderGoogle,
+    aikit.ProviderBedrock,
   },
 })
 if err != nil {

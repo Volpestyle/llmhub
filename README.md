@@ -2,7 +2,7 @@
 
 Provider-agnostic inference tooling for Node.js, Go, and Python. The repo standardizes model
 listing, routing, generation, streaming (SSE), and cost estimation across OpenAI, Anthropic,
-Google Gemini, xAI, and local Ollama endpoints. It also ships shared model metadata
+Google Gemini, Amazon Bedrock, xAI, and local Ollama endpoints. It also ships shared model metadata
 (scraped per provider + manual catalogs) and a reference OpenAPI spec for HTTP servers.
 
 ## Packages

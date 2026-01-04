@@ -129,6 +129,29 @@ def lookup_token_prices(provider: Provider, model_id: str) -> Optional[TokenPric
         return None
     return TokenPrices(input=prices.get("input"), output=prices.get("output"))
 
+def _coerce_float(value: Any) -> Optional[float]:
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str) and value.strip():
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    return None
+
+
+def _audio_price_per_minute(curated: Dict[str, Any]) -> Optional[float]:
+    raw = curated.get("audioPrices") or curated.get("transcribePrices") or curated.get("audio_prices")
+    if isinstance(raw, dict):
+        per_minute = _coerce_float(raw.get("perMinute") or raw.get("per_minute") or raw.get("perMinuteUsd"))
+        if per_minute is not None:
+            return per_minute
+        per_second = _coerce_float(raw.get("perSecond") or raw.get("per_second") or raw.get("perSecondUsd"))
+        if per_second is not None:
+            return per_second * 60.0
+        return None
+    return _coerce_float(raw)
+
 
 def estimate_cost(provider: Provider, model_id: str, usage: Optional[Usage]) -> Optional[CostBreakdown]:
     if usage is None:
@@ -151,4 +174,31 @@ def estimate_cost(provider: Provider, model_id: str, usage: Optional[Usage]) -> 
         output_cost_usd=round(output_cost, 6),
         total_cost_usd=round(input_cost + output_cost, 6),
         pricing_per_million=pricing,
+    )
+
+
+def estimate_transcribe_cost(
+    provider: Provider,
+    model_id: str,
+    duration_seconds: Optional[float],
+) -> Optional[CostBreakdown]:
+    if duration_seconds is None:
+        return None
+    try:
+        duration_value = float(duration_seconds)
+    except (TypeError, ValueError):
+        return None
+    if duration_value <= 0:
+        return None
+    curated = find_curated_model(provider, model_id)
+    if not curated:
+        return None
+    rate_per_minute = _audio_price_per_minute(curated)
+    if rate_per_minute is None or rate_per_minute <= 0:
+        return None
+    total = round((duration_value / 60.0) * rate_per_minute, 6)
+    return CostBreakdown(
+        input_cost_usd=total,
+        output_cost_usd=0.0,
+        total_cost_usd=total,
     )

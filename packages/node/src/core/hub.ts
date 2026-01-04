@@ -4,6 +4,7 @@ import { OpenAIAdapter } from "../adapters/openai.js";
 import { XAIAdapter } from "../adapters/xai.js";
 import { GoogleAdapter } from "../adapters/gemini.js";
 import { OllamaAdapter } from "../adapters/ollama.js";
+import { BedrockAdapter } from "../adapters/bedrock.js";
 import { AdapterMap, ProviderAdapter } from "./provider.js";
 import { fingerprintApiKey } from "./entitlements.js";
 import {
@@ -22,6 +23,7 @@ import {
   AnthropicProviderConfig,
   XAIProviderConfig,
   GoogleProviderConfig,
+  BedrockProviderConfig,
   OllamaProviderConfig,
   Provider,
   StreamChunk,
@@ -401,6 +403,13 @@ export function createKit(config: KitConfig): Kit {
       config.httpClient,
     );
   }
+  if (config.providers[Provider.Bedrock] && !adapters[Provider.Bedrock]) {
+    const providerConfig = config.providers[Provider.Bedrock]! as BedrockProviderConfig;
+    adapters[Provider.Bedrock] = new BedrockAdapter(
+      providerConfig,
+      config.httpClient,
+    );
+  }
 
   const baseAdapterFactory = (
     provider: Provider,
@@ -449,6 +458,11 @@ export function createKit(config: KitConfig): Kit {
       case Provider.Ollama:
         return new OllamaAdapter(
           { ...baseConfig, apiKey: entitlement.apiKey },
+          config.httpClient,
+        );
+      case Provider.Bedrock:
+        return new BedrockAdapter(
+          baseConfig as BedrockProviderConfig,
           config.httpClient,
         );
       default:
