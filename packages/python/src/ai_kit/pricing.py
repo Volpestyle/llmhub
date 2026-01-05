@@ -97,6 +97,8 @@ def apply_curated_metadata(model: ModelMetadata) -> ModelMetadata:
             tool_use=bool(curated_caps.get("tool_use", capabilities.tool_use)),
             structured_output=bool(curated_caps.get("structured_output", capabilities.structured_output)),
             reasoning=bool(curated_caps.get("reasoning", capabilities.reasoning)),
+            audio_in=bool(curated_caps.get("audio_in", getattr(capabilities, "audio_in", False))),
+            audio_out=bool(curated_caps.get("audio_out", getattr(capabilities, "audio_out", False))),
         )
     token_prices = model.tokenPrices
     curated_prices = curated.get("tokenPrices")

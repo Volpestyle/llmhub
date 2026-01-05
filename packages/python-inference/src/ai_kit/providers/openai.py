@@ -7,8 +7,10 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.request import urlopen
 
+import requests
+
 from ..http import request_json, request_stream, request_multipart
-from ..errors import ErrorKind, KitErrorPayload, AiKitError
+from ..errors import ErrorKind, KitErrorPayload, AiKitError, classify_status
 from ..sse import iter_sse_events
 from ..types import (
     AudioInput,
@@ -19,6 +21,8 @@ from ..types import (
     Message,
     ModelCapabilities,
     ModelMetadata,
+    SpeechGenerateInput,
+    SpeechGenerateOutput,
     TranscriptSegment,
     TranscriptWord,
     TranscribeInput,
@@ -32,6 +36,24 @@ from ..types import (
     as_json_dict,
     ensure_messages,
 )
+
+
+# OpenAI Voice Catalog - https://platform.openai.com/docs/guides/text-to-speech
+OPENAI_VOICES = {
+    "alloy": {"type": "neutral", "tone": "neutral, balanced", "description": "Versatile, well-rounded voice"},
+    "ash": {"type": "male", "tone": "conversational", "description": "Natural conversational tone"},
+    "ballad": {"type": "male", "tone": "smooth, melodic", "description": "Smooth and melodic voice"},
+    "cedar": {"type": "male", "tone": "warm, natural", "description": "Warm and natural (recommended)"},
+    "coral": {"type": "female", "tone": "warm, friendly", "description": "Warm and approachable"},
+    "echo": {"type": "male", "tone": "warm, resonant", "description": "Warm and smooth delivery"},
+    "fable": {"type": "neutral", "tone": "expressive", "description": "Expressive storyteller voice"},
+    "marin": {"type": "female", "tone": "clear, pleasant", "description": "Clear and pleasant (recommended)"},
+    "nova": {"type": "female", "tone": "bright, energetic", "description": "Bright and lively delivery"},
+    "onyx": {"type": "male", "tone": "deep, authoritative", "description": "Deep and commanding presence"},
+    "sage": {"type": "neutral", "tone": "calm, wise", "description": "Calm and thoughtful delivery"},
+    "shimmer": {"type": "female", "tone": "soft, gentle", "description": "Soft and soothing voice"},
+    "verse": {"type": "neutral", "tone": "clear, articulate", "description": "Clear and precise enunciation"},
+}
 
 
 @dataclass
@@ -48,7 +70,15 @@ class OpenAIAdapter:
     def __init__(self, config: OpenAIConfig, provider: Provider = "openai") -> None:
         self.config = config
         self.provider = provider
-        self.base_url = config.base_url.rstrip("/")
+        base_url = config.base_url
+        if not base_url:
+            if provider == "xai":
+                base_url = "https://api.x.ai"
+            elif provider == "ollama":
+                base_url = "http://localhost:11434"
+            else:
+                base_url = "https://api.openai.com"
+        self.base_url = base_url.rstrip("/")
 
     def list_models(self) -> List[ModelMetadata]:
         url = f"{self.base_url}/v1/models"
@@ -127,6 +157,42 @@ class OpenAIAdapter:
                 provider=self.provider,
             )
         )
+
+    def generate_speech(self, input: SpeechGenerateInput) -> SpeechGenerateOutput:
+        url = f"{self.base_url}/v1/audio/speech"
+        payload: Dict[str, Any] = {
+            "model": input.model,
+            "input": input.text,
+        }
+        if input.voice:
+            payload["voice"] = input.voice
+        response_format = input.responseFormat or input.format
+        if response_format:
+            payload["response_format"] = response_format
+        if input.speed is not None:
+            payload["speed"] = input.speed
+        if isinstance(input.parameters, dict):
+            payload.update(input.parameters)
+        response = requests.post(
+            url,
+            headers=self._headers(),
+            json=payload,
+            timeout=self.config.timeout,
+        )
+        if response.status_code >= 400:
+            body = (response.text or "").strip()
+            message = body or f"Upstream HTTP {response.status_code} for {url}"
+            raise AiKitError(
+                KitErrorPayload(
+                    kind=classify_status(response.status_code),
+                    message=message,
+                    provider=self.provider,
+                    upstreamStatus=response.status_code,
+                )
+            )
+        mime = response.headers.get("content-type") or _speech_format_to_mime(response_format)
+        data = base64.b64encode(response.content).decode("utf-8")
+        return SpeechGenerateOutput(mime=mime, data=data)
 
     def transcribe(self, input: TranscribeInput) -> TranscribeOutput:
         audio_bytes, filename, media_type = _load_audio_input(input.audio)
@@ -533,6 +599,27 @@ def _normalize_transcription_output(payload: Dict[str, Any]) -> TranscribeOutput
         words=words or None,
         raw=payload,
     )
+
+
+def _speech_format_to_mime(response_format: Optional[str]) -> str:
+    fmt = (response_format or "").strip().lower()
+    if fmt == "mp3":
+        return "audio/mpeg"
+    if fmt == "opus":
+        return "audio/opus"
+    if fmt == "aac":
+        return "audio/aac"
+    if fmt == "flac":
+        return "audio/flac"
+    if fmt == "wav":
+        return "audio/wav"
+    if fmt == "pcmu":
+        return "audio/pcmu"
+    if fmt == "pcma":
+        return "audio/pcma"
+    if fmt == "pcm":
+        return "audio/pcm"
+    return "application/octet-stream"
 
 
 def _load_audio_input(audio: AudioInput | Dict[str, Any]) -> Tuple[bytes, str, str]:

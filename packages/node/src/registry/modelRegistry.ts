@@ -230,6 +230,9 @@ export class ModelRegistry {
     const modalities: ModelModalities = {
       text: model.capabilities.text,
       vision: model.capabilities.vision,
+      audioIn: model.capabilities.audio_in,
+      audioOut: model.capabilities.audio_out,
+      imageOut: model.capabilities.image,
     };
     const features: ModelFeatures = {
       tools: model.capabilities.tool_use,

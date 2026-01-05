@@ -270,6 +270,50 @@ func (a *openAIAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) 
 	}
 }
 
+func (a *openAIAdapter) GenerateSpeech(ctx context.Context, in SpeechGenerateInput) (SpeechGenerateOutput, error) {
+	body := map[string]interface{}{
+		"model": in.Model,
+		"input": in.Text,
+	}
+	if strings.TrimSpace(in.Voice) != "" {
+		body["voice"] = in.Voice
+	}
+	responseFormat := strings.TrimSpace(in.ResponseFormat)
+	if responseFormat == "" {
+		responseFormat = strings.TrimSpace(in.Format)
+	}
+	if responseFormat != "" {
+		body["response_format"] = responseFormat
+	}
+	if in.Speed != nil {
+		body["speed"] = *in.Speed
+	}
+	for key, value := range in.Parameters {
+		body[key] = value
+	}
+	req, err := a.jsonRequest(ctx, http.MethodPost, "/v1/audio/speech", body)
+	if err != nil {
+		return SpeechGenerateOutput{}, err
+	}
+	resp, err := doRequest(ctx, a.client, req, a.provider)
+	if err != nil {
+		return SpeechGenerateOutput{}, err
+	}
+	defer resp.Body.Close()
+	payload, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return SpeechGenerateOutput{}, err
+	}
+	mime := strings.TrimSpace(resp.Header.Get("Content-Type"))
+	if mime == "" {
+		mime = speechFormatToMime(responseFormat)
+	}
+	return SpeechGenerateOutput{
+		Mime: mime,
+		Data: base64.StdEncoding.EncodeToString(payload),
+	}, nil
+}
+
 func (a *openAIAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
 	fileName, data, mediaType, err := a.loadAudioInput(ctx, in.Audio)
 	if err != nil {
@@ -1026,6 +1070,27 @@ func mapResponsesUsage(usage *struct {
 		InputTokens:  usage.InputTokens,
 		OutputTokens: usage.OutputTokens,
 		TotalTokens:  usage.TotalTokens,
+	}
+}
+
+func speechFormatToMime(format string) string {
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "opus":
+		return "audio/opus"
+	case "aac":
+		return "audio/aac"
+	case "flac":
+		return "audio/flac"
+	case "wav":
+		return "audio/wav"
+	case "pcm":
+		return "audio/pcm"
+	case "pcmu":
+		return "audio/pcmu"
+	case "pcma":
+		return "audio/pcma"
+	default:
+		return "audio/mpeg"
 	}
 }
 

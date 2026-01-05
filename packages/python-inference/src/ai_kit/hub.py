@@ -15,6 +15,8 @@ from .types import (
     ImageGenerateOutput,
     MeshGenerateInput,
     MeshGenerateOutput,
+    SpeechGenerateInput,
+    SpeechGenerateOutput,
     TranscribeInput,
     TranscribeOutput,
     Provider,
@@ -180,6 +182,43 @@ class Kit:
             )
         try:
             return adapter.generate_mesh(input)
+        except Exception as err:
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
+            raise kit_err
+
+    def generate_speech(self, input: SpeechGenerateInput) -> SpeechGenerateOutput:
+        entitlement = self._entitlement_for_provider(input.provider)
+        if entitlement:
+            return self.generate_speech_with_context(entitlement, input)
+        adapter = self._require_adapter(input.provider)
+        if not hasattr(adapter, "generate_speech"):
+            raise AiKitError(
+                KitErrorPayload(
+                    kind=ErrorKind.UNSUPPORTED,
+                    message=f"Provider {input.provider} does not support speech generation",
+                )
+            )
+        try:
+            return adapter.generate_speech(input)
+        except Exception as err:
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(None, input.provider, input.model, kit_err)
+            raise kit_err
+
+    def generate_speech_with_context(
+        self, entitlement: EntitlementContext | None, input: SpeechGenerateInput
+    ) -> SpeechGenerateOutput:
+        adapter = self._require_adapter(input.provider, entitlement)
+        if not hasattr(adapter, "generate_speech"):
+            raise AiKitError(
+                KitErrorPayload(
+                    kind=ErrorKind.UNSUPPORTED,
+                    message=f"Provider {input.provider} does not support speech generation",
+                )
+            )
+        try:
+            return adapter.generate_speech(input)
         except Exception as err:
             kit_err = to_kit_error(err)
             self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
@@ -351,6 +390,7 @@ class Kit:
                 api_key=entitlement.apiKey,
                 base_url=getattr(base_config, "base_url", "https://api.x.ai"),
                 compatibility_mode=getattr(base_config, "compatibility_mode", "openai"),
+                speech_mode=getattr(base_config, "speech_mode", "realtime"),
                 timeout=getattr(base_config, "timeout", None),
             )
             return XAIAdapter(config)

@@ -257,6 +257,9 @@ func (r *modelRegistry) modelRecordFromMetadata(model ModelMetadata, provider Pr
 	modalities := ModelModalities{
 		Text:   model.Capabilities.Text,
 		Vision: model.Capabilities.Vision,
+		AudioIn: model.Capabilities.AudioIn,
+		AudioOut: model.Capabilities.AudioOut,
+		ImageOut: model.Capabilities.Image,
 	}
 	features := ModelFeatures{
 		Tools:      model.Capabilities.ToolUse,

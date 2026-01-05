@@ -127,6 +127,14 @@ func (a *anthropicAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInpu
 	}
 }
 
+func (a *anthropicAdapter) GenerateSpeech(ctx context.Context, in SpeechGenerateInput) (SpeechGenerateOutput, error) {
+	return SpeechGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Anthropic speech generation is not supported",
+		Provider: a.provider,
+	}
+}
+
 func (a *anthropicAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
 	return TranscribeOutput{}, &KitError{
 		Kind:     ErrorUnsupported,

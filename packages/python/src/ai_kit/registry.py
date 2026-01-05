@@ -212,7 +212,13 @@ class ModelRegistry:
         fetched_at: float,
         entitlement: Optional[EntitlementContext],
     ) -> ModelRecord:
-        modalities = ModelModalities(text=model.capabilities.text, vision=model.capabilities.vision)
+        modalities = ModelModalities(
+            text=model.capabilities.text,
+            vision=model.capabilities.vision,
+            audioIn=getattr(model.capabilities, "audio_in", None),
+            audioOut=getattr(model.capabilities, "audio_out", None),
+            imageOut=getattr(model.capabilities, "image", None),
+        )
         features = ModelFeatures(
             tools=model.capabilities.tool_use,
             jsonMode=model.capabilities.structured_output,

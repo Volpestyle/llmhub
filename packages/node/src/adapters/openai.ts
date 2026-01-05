@@ -11,6 +11,9 @@ import {
   OpenAIProviderConfig,
   Provider,
   ResponseFormat,
+  SpeechGenerateInput,
+  SpeechGenerateOutput,
+  SpeechResponseFormat,
   StreamChunk,
   ToolCall,
   ToolDefinition,
@@ -24,6 +27,25 @@ import {
 import { AiKitError } from "../core/errors.js";
 import { ErrorKind } from "../core/types.js";
 import { streamSSE, parseEventData } from "../core/stream.js";
+
+/** OpenAI Voice Catalog - https://platform.openai.com/docs/guides/text-to-speech */
+export const OPENAI_VOICES = {
+  alloy: { type: "neutral", tone: "neutral, balanced", description: "Versatile, well-rounded voice" },
+  ash: { type: "male", tone: "conversational", description: "Natural conversational tone" },
+  ballad: { type: "male", tone: "smooth, melodic", description: "Smooth and melodic voice" },
+  cedar: { type: "male", tone: "warm, natural", description: "Warm and natural (recommended)" },
+  coral: { type: "female", tone: "warm, friendly", description: "Warm and approachable" },
+  echo: { type: "male", tone: "warm, resonant", description: "Warm and smooth delivery" },
+  fable: { type: "neutral", tone: "expressive", description: "Expressive storyteller voice" },
+  marin: { type: "female", tone: "clear, pleasant", description: "Clear and pleasant (recommended)" },
+  nova: { type: "female", tone: "bright, energetic", description: "Bright and lively delivery" },
+  onyx: { type: "male", tone: "deep, authoritative", description: "Deep and commanding presence" },
+  sage: { type: "neutral", tone: "calm, wise", description: "Calm and thoughtful delivery" },
+  shimmer: { type: "female", tone: "soft, gentle", description: "Soft and soothing voice" },
+  verse: { type: "neutral", tone: "clear, articulate", description: "Clear and precise enunciation" },
+} as const;
+
+export type OpenAIVoice = keyof typeof OPENAI_VOICES;
 
 interface OpenAIModelList {
   data: Array<{ id: string }>;
@@ -248,6 +270,36 @@ export class OpenAIAdapter implements ProviderAdapter {
       mime: "image/png",
       data: image.b64_json,
       raw: response,
+    };
+  }
+
+  async generateSpeech(
+    input: SpeechGenerateInput,
+  ): Promise<SpeechGenerateOutput> {
+    const responseFormat = input.responseFormat ?? input.format;
+    const payload: Record<string, unknown> = {
+      model: input.model,
+      input: input.text,
+      ...(input.voice ? { voice: input.voice } : {}),
+    };
+    if (responseFormat) {
+      payload.response_format = responseFormat;
+    }
+    if (typeof input.speed === "number") {
+      payload.speed = input.speed;
+    }
+    if (input.parameters) {
+      Object.assign(payload, input.parameters);
+    }
+    const response = await this.fetchRaw("/v1/audio/speech", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      signal: input.signal,
+    });
+    const data = Buffer.from(await response.arrayBuffer()).toString("base64");
+    return {
+      mime: resolveSpeechMime(response, responseFormat),
+      data,
     };
   }
 
@@ -788,6 +840,35 @@ export class OpenAIAdapter implements ProviderAdapter {
       });
     }
     return chunks;
+  }
+}
+
+function resolveSpeechMime(
+  response: Response,
+  format?: SpeechResponseFormat,
+): string {
+  const header = response.headers.get("content-type");
+  if (header) {
+    return header;
+  }
+  switch (format) {
+    case "opus":
+      return "audio/opus";
+    case "aac":
+      return "audio/aac";
+    case "flac":
+      return "audio/flac";
+    case "wav":
+      return "audio/wav";
+    case "pcm":
+      return "audio/pcm";
+    case "pcmu":
+      return "audio/pcmu";
+    case "pcma":
+      return "audio/pcma";
+    case "mp3":
+    default:
+      return "audio/mpeg";
   }
 }
 

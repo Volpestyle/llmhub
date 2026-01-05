@@ -15,6 +15,8 @@ class ModelCapabilities:
     tool_use: bool
     structured_output: bool
     reasoning: bool
+    audio_in: Optional[bool] = None
+    audio_out: Optional[bool] = None
 
 
 @dataclass
@@ -231,6 +233,26 @@ class MeshGenerateInput:
 class MeshGenerateOutput:
     data: str
     format: Optional[str] = None
+    raw: Optional[Any] = None
+
+
+@dataclass
+class SpeechGenerateInput:
+    provider: Provider
+    model: str
+    text: str
+    voice: Optional[str] = None
+    responseFormat: Optional[str] = None
+    format: Optional[str] = None
+    speed: Optional[float] = None
+    parameters: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, str]] = None
+
+
+@dataclass
+class SpeechGenerateOutput:
+    mime: str
+    data: str
     raw: Optional[Any] = None
 
 

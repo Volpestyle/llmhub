@@ -19,6 +19,8 @@ type ModelCapabilities struct {
 	ToolUse          bool `json:"tool_use"`
 	StructuredOutput bool `json:"structured_output"`
 	Reasoning        bool `json:"reasoning"`
+	AudioIn          bool `json:"audio_in,omitempty"`
+	AudioOut         bool `json:"audio_out,omitempty"`
 }
 
 type TokenPrices struct {
@@ -211,6 +213,24 @@ type MeshGenerateOutput struct {
 	Data   string      `json:"data"`
 	Format string      `json:"format,omitempty"`
 	Raw    interface{} `json:"raw,omitempty"`
+}
+
+type SpeechGenerateInput struct {
+	Provider       Provider               `json:"provider"`
+	Model          string                 `json:"model"`
+	Text           string                 `json:"text"`
+	Voice          string                 `json:"voice,omitempty"`
+	ResponseFormat string                 `json:"responseFormat,omitempty"`
+	Format         string                 `json:"format,omitempty"`
+	Speed          *float64               `json:"speed,omitempty"`
+	Parameters     map[string]interface{} `json:"parameters,omitempty"`
+	Metadata       map[string]string      `json:"metadata,omitempty"`
+}
+
+type SpeechGenerateOutput struct {
+	Mime string      `json:"mime"`
+	Data string      `json:"data"`
+	Raw  interface{} `json:"raw,omitempty"`
 }
 
 type TranscriptSegment struct {

@@ -6,7 +6,14 @@ from urllib.parse import parse_qs
 
 from .errors import ErrorKind, KitErrorPayload, AiKitError, to_kit_error
 from .hub import Kit
-from .types import GenerateInput, ImageGenerateInput, MeshGenerateInput, TranscribeInput, as_json_dict
+from .types import (
+    GenerateInput,
+    ImageGenerateInput,
+    MeshGenerateInput,
+    SpeechGenerateInput,
+    TranscribeInput,
+    as_json_dict,
+)
 
 ASGIApp = Callable[[Dict[str, Any], Callable[..., Awaitable[Dict[str, Any]]], Callable[..., Awaitable[None]]], Awaitable[None]]
 
@@ -50,6 +57,12 @@ def create_asgi_app(kit: Kit, base_path: str = "") -> ASGIApp:
                 await _respond_text(send, 405, "method not allowed")
                 return
             await _handle_mesh(kit, receive, send)
+            return
+        if path == "/speech":
+            if method != "POST":
+                await _respond_text(send, 405, "method not allowed")
+                return
+            await _handle_speech(kit, receive, send)
             return
         if path == "/transcribe":
             if method != "POST":
@@ -114,6 +127,16 @@ async def _handle_mesh(kit: Kit, receive, send) -> None:
         payload = await _read_json(receive)
         input_data = _normalize_mesh_input(payload)
         output = kit.generate_mesh(input_data)
+        await _respond_json(send, 200, as_json_dict(output))
+    except Exception as err:
+        await _send_json_error(send, err)
+
+
+async def _handle_speech(kit: Kit, receive, send) -> None:
+    try:
+        payload = await _read_json(receive)
+        input_data = _normalize_speech_input(payload)
+        output = kit.generate_speech(input_data)
         await _respond_json(send, 200, as_json_dict(output))
     except Exception as err:
         await _send_json_error(send, err)
@@ -311,6 +334,41 @@ def _normalize_mesh_input(payload: Any) -> MeshGenerateInput:
         inputImages=payload.get("inputImages"),
         format=payload.get("format"),
     )
+
+
+def _normalize_speech_input(payload: Any) -> SpeechGenerateInput:
+    if not isinstance(payload, dict):
+        raise AiKitError(
+            KitErrorPayload(
+                kind=ErrorKind.VALIDATION,
+                message="Request body must be a SpeechGenerateInput object",
+            )
+        )
+    input_data = dict(payload)
+    if "text" not in input_data and isinstance(input_data.get("input"), str):
+        input_data["text"] = input_data.get("input")
+    input_data.pop("input", None)
+    if "responseFormat" not in input_data and isinstance(input_data.get("response_format"), str):
+        input_data["responseFormat"] = input_data.get("response_format")
+    input_data.pop("response_format", None)
+    if "responseFormat" not in input_data and isinstance(input_data.get("format"), str):
+        input_data["responseFormat"] = input_data.get("format")
+    provider = input_data.get("provider")
+    if not isinstance(provider, str):
+        raise AiKitError(
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="provider is required and must be a string")
+        )
+    model = input_data.get("model")
+    if not isinstance(model, str):
+        raise AiKitError(
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="model is required and must be a string")
+        )
+    text = input_data.get("text")
+    if not isinstance(text, str):
+        raise AiKitError(
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="text is required and must be a string")
+        )
+    return SpeechGenerateInput(**input_data)
 
 
 def _normalize_transcribe_input(payload: Any) -> TranscribeInput:

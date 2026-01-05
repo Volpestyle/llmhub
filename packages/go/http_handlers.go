@@ -13,6 +13,7 @@ type KitAPI interface {
 	Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error)
 	GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error)
 	GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error)
+	GenerateSpeech(ctx context.Context, in SpeechGenerateInput) (SpeechGenerateOutput, error)
 	Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error)
 	StreamGenerate(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error)
 }
@@ -83,6 +84,22 @@ func MeshHandler(h KitAPI) http.HandlerFunc {
 			return
 		}
 		output, err := h.GenerateMesh(r.Context(), input)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		writeJSON(w, output)
+	}
+}
+
+func SpeechHandler(h KitAPI) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var input SpeechGenerateInput
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			return
+		}
+		output, err := h.GenerateSpeech(r.Context(), input)
 		if err != nil {
 			writeError(w, err)
 			return

@@ -74,6 +74,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MeshGenerateOutput'
+  /speech:
+    post:
+      summary: Run a single speech generation request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpeechGenerateInput'
+      responses:
+        '200':
+          description: Speech generation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeechGenerateOutput'
   /transcribe:
     post:
       summary: Run a single transcription request
@@ -321,6 +337,39 @@ components:
       properties:
         data: { type: string }
         format: { type: string }
+        raw:
+          type: object
+          additionalProperties: true
+    SpeechResponseFormat:
+      type: string
+      enum: [mp3, opus, aac, flac, wav, pcm, pcmu, pcma]
+    SpeechGenerateInput:
+      type: object
+      required: [provider, model, text]
+      properties:
+        provider:
+          $ref: '#/components/schemas/Provider'
+        model: { type: string }
+        text: { type: string }
+        voice: { type: string }
+        responseFormat:
+          $ref: '#/components/schemas/SpeechResponseFormat'
+        format:
+          $ref: '#/components/schemas/SpeechResponseFormat'
+        speed: { type: number }
+        parameters:
+          type: object
+          additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    SpeechGenerateOutput:
+      type: object
+      required: [mime, data]
+      properties:
+        mime: { type: string }
+        data: { type: string }
         raw:
           type: object
           additionalProperties: true

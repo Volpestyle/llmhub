@@ -9,6 +9,7 @@ For SSE, the ASGI adapter is a good fit because it supports native streaming.
 - `POST /generate` -> text generation
 - `POST /image` -> image generation
 - `POST /mesh` -> mesh generation
+- `POST /speech` -> speech generation
 - `POST /transcribe` -> audio transcription
 - `POST /generate/stream` -> SSE stream
 
@@ -63,6 +64,21 @@ curl -X POST http://localhost:3000/transcribe \
     "timestampGranularities": ["segment", "word"]
   }'
 ```
+
+## Example: speech
+```bash
+curl -X POST http://localhost:3000/speech \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "provider": "openai",
+    "model": "gpt-4o-mini-tts",
+    "text": "Hello from ai-kit.",
+    "voice": "alloy",
+    "responseFormat": "mp3"
+  }'
+```
+
+For xAI realtime voice output, use `responseFormat` values `pcm`, `pcmu`, or `pcma`. You can pass `parameters.sampleRate` for PCM output, and the `model` field is ignored by the realtime API (use a placeholder like `grok-voice`). To force OpenAI-compat speech instead, set `metadata` to `{ "xai:speech-mode": "openai" }` or configure `speechMode` on the xAI provider.
 
 ## Python (ASGI adapter)
 The Python SDK exposes a minimal ASGI app that you can mount in an existing server. It serves

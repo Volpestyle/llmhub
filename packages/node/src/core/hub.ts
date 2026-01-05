@@ -19,6 +19,8 @@ import {
   MeshGenerateInput,
   MeshGenerateOutput,
   ModelRecord,
+  SpeechGenerateInput,
+  SpeechGenerateOutput,
   OpenAIProviderConfig,
   AnthropicProviderConfig,
   XAIProviderConfig,
@@ -163,6 +165,30 @@ class DefaultKit implements Kit {
     }
   }
 
+  async generateSpeech(
+    input: SpeechGenerateInput,
+  ): Promise<SpeechGenerateOutput> {
+    const entitlement = this.entitlementForProvider(input.provider);
+    if (entitlement) {
+      return this.generateSpeechWithContext(entitlement, input);
+    }
+    const adapter = this.requireAdapter(input.provider);
+    if (!adapter.generateSpeech) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support speech generation`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.generateSpeech(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(undefined, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
   async transcribe(input: TranscribeInput): Promise<TranscribeOutput> {
     const entitlement = this.entitlementForProvider(input.provider);
     if (entitlement) {
@@ -239,6 +265,27 @@ class DefaultKit implements Kit {
     }
     try {
       return await adapter.generateMesh(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
+  private async generateSpeechWithContext(
+    entitlement: EntitlementContext | undefined,
+    input: SpeechGenerateInput,
+  ): Promise<SpeechGenerateOutput> {
+    const adapter = this.requireAdapter(input.provider, entitlement);
+    if (!adapter.generateSpeech) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support speech generation`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.generateSpeech(input);
     } catch (err) {
       const kitErr = toKitError(err);
       this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);

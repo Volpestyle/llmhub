@@ -5,6 +5,7 @@ import {
   ListModelsParams,
   MeshGenerateInput,
   Provider,
+  SpeechGenerateInput,
   TranscribeInput,
 } from "../core/types.js";
 import { toKitError, AiKitError } from "../core/errors.js";
@@ -13,7 +14,7 @@ import { ErrorKind } from "../core/types.js";
 export interface RequestLike {
   method?: string;
   query?: Record<string, string | string[] | undefined>;
-  body?: GenerateInput | ImageGenerateInput | MeshGenerateInput | TranscribeInput | string | null;
+  body?: GenerateInput | ImageGenerateInput | MeshGenerateInput | SpeechGenerateInput | TranscribeInput | string | null;
   headers?: Record<string, string>;
   get?(name: string): string | undefined;
 }
@@ -73,6 +74,16 @@ export function httpHandlers(kit: Kit) {
         try {
           const input = normalizeMeshInput(req.body ?? null);
           const output = await kit.generateMesh(input);
+          res.status(200).json(output);
+        } catch (err) {
+          sendJsonError(res, err);
+        }
+      },
+    speech:
+      () => async (req: RequestLike, res: ResponseLike) => {
+        try {
+          const input = normalizeSpeechInput(req.body ?? null);
+          const output = await kit.generateSpeech(input);
           res.status(200).json(output);
         } catch (err) {
           sendJsonError(res, err);
@@ -313,6 +324,65 @@ function normalizeMeshInput(payload: unknown): MeshGenerateInput {
     });
   }
   return input as unknown as MeshGenerateInput;
+}
+
+function normalizeSpeechInput(payload: unknown): SpeechGenerateInput {
+  let parsed: SpeechGenerateInput | string | null | Record<string, unknown> = payload as
+    | SpeechGenerateInput
+    | string
+    | null
+    | Record<string, unknown>;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      throw new AiKitError({
+        kind: ErrorKind.Validation,
+        message: "Body must be valid JSON",
+      });
+    }
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new AiKitError({
+      kind: ErrorKind.Validation,
+      message: "Request body must be a SpeechGenerateInput object",
+    });
+  }
+  const input = parsed as Record<string, unknown>;
+  if (typeof input.text !== "string" && typeof input.input === "string") {
+    input.text = input.input;
+  }
+  if (
+    typeof input.responseFormat !== "string" &&
+    typeof input.response_format === "string"
+  ) {
+    input.responseFormat = input.response_format;
+  }
+  if (
+    typeof input.responseFormat !== "string" &&
+    typeof input.format === "string"
+  ) {
+    input.responseFormat = input.format;
+  }
+  if (typeof input.provider !== "string") {
+    throw new AiKitError({
+      kind: ErrorKind.Validation,
+      message: "provider is required and must be a string",
+    });
+  }
+  if (typeof input.model !== "string") {
+    throw new AiKitError({
+      kind: ErrorKind.Validation,
+      message: "model is required and must be a string",
+    });
+  }
+  if (typeof input.text !== "string") {
+    throw new AiKitError({
+      kind: ErrorKind.Validation,
+      message: "text is required and must be a string",
+    });
+  }
+  return input as unknown as SpeechGenerateInput;
 }
 
 function normalizeTranscribeInput(payload: unknown): TranscribeInput {

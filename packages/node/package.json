@@ -30,7 +30,9 @@
     "test:watch": "vitest watch",
     "refresh:models": "tsx scripts/refreshScrapedModels.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "dotenv": "^16.4.5",

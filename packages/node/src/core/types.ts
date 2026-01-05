@@ -15,9 +15,12 @@ export type ProviderMap<T> = Partial<Record<Provider, T>>;
 export interface ModelCapabilities {
   text: boolean;
   vision: boolean;
+  image?: boolean;
   tool_use: boolean;
   structured_output: boolean;
   reasoning: boolean;
+  audio_in?: boolean;
+  audio_out?: boolean;
 }
 
 export interface TokenPrices {
@@ -333,6 +336,35 @@ export interface TranscribeOutput {
   raw?: unknown;
 }
 
+export type SpeechResponseFormat =
+  | "mp3"
+  | "opus"
+  | "aac"
+  | "flac"
+  | "wav"
+  | "pcm"
+  | "pcmu"
+  | "pcma";
+
+export interface SpeechGenerateInput {
+  provider: Provider;
+  model: string;
+  text: string;
+  voice?: string;
+  responseFormat?: SpeechResponseFormat;
+  format?: SpeechResponseFormat;
+  speed?: number;
+  parameters?: Record<string, unknown>;
+  metadata?: Record<string, string>;
+  signal?: AbortSignal;
+}
+
+export interface SpeechGenerateOutput {
+  mime: string;
+  data: string;
+  raw?: unknown;
+}
+
 export type StreamChunk =
   | { type: "delta"; textDelta: string }
   | { type: "tool_call"; call: ToolCall; delta?: string }
@@ -409,6 +441,11 @@ export interface XAIProviderConfig {
    * Default: "openai".
    */
   compatibilityMode?: "openai" | "anthropic";
+  /**
+   * "realtime" uses the Grok Voice Agent API over WebSocket for speech output.
+   * Default: "realtime".
+   */
+  speechMode?: "openai" | "realtime";
 }
 
 export interface GoogleProviderConfig {
@@ -479,6 +516,7 @@ export interface Kit {
   ): Promise<GenerateOutput>;
   generateImage(input: ImageGenerateInput): Promise<ImageGenerateOutput>;
   generateMesh(input: MeshGenerateInput): Promise<MeshGenerateOutput>;
+  generateSpeech(input: SpeechGenerateInput): Promise<SpeechGenerateOutput>;
   transcribe(input: TranscribeInput): Promise<TranscribeOutput>;
   streamGenerate(input: GenerateInput): AsyncIterable<StreamChunk>;
   streamGenerateWithContext(

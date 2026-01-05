@@ -8,6 +8,8 @@ import {
   MeshGenerateOutput,
   ModelMetadata,
   Provider,
+  SpeechGenerateInput,
+  SpeechGenerateOutput,
   TranscribeInput,
   TranscribeOutput,
   StreamChunk,
@@ -20,6 +22,7 @@ export interface ProviderAdapter {
   streamGenerate(input: GenerateInput): AsyncIterable<StreamChunk>;
   generateImage?(input: ImageGenerateInput): Promise<ImageGenerateOutput>;
   generateMesh?(input: MeshGenerateInput): Promise<MeshGenerateOutput>;
+  generateSpeech?(input: SpeechGenerateInput): Promise<SpeechGenerateOutput>;
   transcribe?(input: TranscribeInput): Promise<TranscribeOutput>;
 }
 

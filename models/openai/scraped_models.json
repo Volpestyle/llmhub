@@ -174,5 +174,19 @@
       "reasoning": false,
       "image": false
     }
+  },
+  {
+    "id": "gpt-4o-mini-tts",
+    "displayName": "GPT-4o Mini TTS",
+    "family": "gpt-4o",
+    "capabilities": {
+      "text": true,
+      "vision": false,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false,
+      "image": false,
+      "audio_out": true
+    }
   }
 ]
