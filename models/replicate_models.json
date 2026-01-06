@@ -1,5 +1,57 @@
 [
   {
+    "id": "google/nano-banana",
+    "provider": "replicate",
+    "displayName": "Google Nano Banana (Gemini 2.5 Flash Image)",
+    "family": "image-edit",
+    "description": "Google's state-of-the-art image generation and editing model. Supports character consistency, multi-image fusion, and conversational editing.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false
+    },
+    "inputs": [
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": true,
+        "description": "A text description of the image you want to generate or the edit you want to make"
+      },
+      {
+        "name": "image_input",
+        "label": "Image input",
+        "type": "array",
+        "required": false,
+        "description": "Input images to transform or use as reference (supports multiple images)"
+      },
+      {
+        "name": "aspect_ratio",
+        "label": "Aspect ratio",
+        "type": "string",
+        "required": false,
+        "description": "Aspect ratio of the generated image"
+      },
+      {
+        "name": "output_format",
+        "label": "Output format",
+        "type": "string",
+        "required": false,
+        "default": "png",
+        "description": "Format of the output image (png, jpg)"
+      }
+    ],
+    "features": [
+      "character-consistency",
+      "multi-image-fusion",
+      "conversational-editing",
+      "style-transfer"
+    ]
+  },
+  {
     "id": "bria/remove-background",
     "provider": "replicate",
     "displayName": "Bria Remove Background",

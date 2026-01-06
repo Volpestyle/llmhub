@@ -147,6 +147,116 @@ class ReplicateClient:
             result[str(k)] = self._coerce_single_file(v)
         return result
 
+    def nano_banana(
+        self,
+        *,
+        model: str = "google/nano-banana",
+        prompt: str,
+        image_input: Optional[List[Union[str, Path]]] = None,
+        aspect_ratio: Optional[str] = None,
+        output_format: str = "png",
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> bytes:
+        """
+        Google Nano Banana (Gemini 2.5 Flash Image) - image generation and editing.
+
+        Supports:
+        - Character and style consistency across multiple images
+        - Multi-image fusion (up to 3 reference images)
+        - Conversational editing with natural language
+        - Style transfer and aesthetic inspiration
+
+        Args:
+            model: Replicate model ID (default: google/nano-banana)
+            prompt: Text description of the image to generate or edit to make
+            image_input: Optional list of input images (URLs or file paths)
+            aspect_ratio: Optional aspect ratio for the output
+            output_format: Output format (png or jpg)
+            parameters: Additional parameters to pass to the model
+
+        Returns:
+            Generated image as bytes
+        """
+        inputs: Dict[str, Any] = {
+            "prompt": prompt,
+            "output_format": output_format,
+        }
+
+        if aspect_ratio:
+            inputs["aspect_ratio"] = aspect_ratio
+
+        if parameters:
+            inputs.update(parameters)
+
+        # Handle image inputs - can be URLs or file paths
+        if image_input:
+            processed_images: List[Any] = []
+            for img in image_input:
+                if isinstance(img, Path):
+                    # Open file and add file handle
+                    processed_images.append(img.open("rb"))
+                elif isinstance(img, str):
+                    if img.startswith("http"):
+                        # URL - pass directly
+                        processed_images.append(img)
+                    else:
+                        # Assume file path string
+                        processed_images.append(Path(img).open("rb"))
+                else:
+                    processed_images.append(img)
+            inputs["image_input"] = processed_images
+
+        try:
+            out = self.run(model, inputs=inputs)
+        finally:
+            # Close any file handles we opened
+            if image_input:
+                for img in inputs.get("image_input", []):
+                    if hasattr(img, "close"):
+                        img.close()
+
+        return self._coerce_single_file(out)
+
+    def nano_banana_batch(
+        self,
+        *,
+        model: str = "google/nano-banana",
+        prompt: str,
+        image_inputs: List[List[Union[str, Path]]],
+        aspect_ratio: Optional[str] = None,
+        output_format: str = "png",
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> List[bytes]:
+        """
+        Batch process multiple images with the same prompt.
+
+        Useful for editing all anchor images in a PersonaPack with consistent
+        customizations (e.g., change hair color across all poses).
+
+        Args:
+            model: Replicate model ID
+            prompt: Text description of the edit to apply
+            image_inputs: List of image input lists (one per output)
+            aspect_ratio: Optional aspect ratio
+            output_format: Output format
+            parameters: Additional parameters
+
+        Returns:
+            List of generated images as bytes
+        """
+        results: List[bytes] = []
+        for img_list in image_inputs:
+            result = self.nano_banana(
+                model=model,
+                prompt=prompt,
+                image_input=img_list,
+                aspect_ratio=aspect_ratio,
+                output_format=output_format,
+                parameters=parameters,
+            )
+            results.append(result)
+        return results
+
     def _coerce_single_file(self, out: Any) -> bytes:
         if out is None:
             raise RuntimeError("Replicate returned None output")
