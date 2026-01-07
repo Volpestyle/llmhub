@@ -90,5 +90,100 @@
         ]
       }
     ]
+  },
+  {
+    "id": "fal-ai/kling-video/v2.6/pro/image-to-video",
+    "provider": "fal",
+    "displayName": "Kling Video v2.6 Pro (I2V)",
+    "family": "i2v",
+    "description": "Image-to-video with optional native audio generation.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false
+    },
+    "inputs": [
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "image_url",
+        "label": "Image URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "label": "Duration (seconds)",
+        "type": "string",
+        "required": false,
+        "default": "5"
+      },
+      {
+        "name": "negative_prompt",
+        "label": "Negative prompt",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "generate_audio",
+        "label": "Generate audio",
+        "type": "boolean",
+        "required": false,
+        "default": true
+      },
+      {
+        "name": "voice_ids",
+        "label": "Voice IDs",
+        "type": "array",
+        "required": false
+      }
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.07,
+      "per_second_usd_with_audio": 0.14
+    }
+  },
+  {
+    "id": "fal-ai/sync-lipsync/v2/pro",
+    "provider": "fal",
+    "displayName": "Sync Lipsync v2 Pro",
+    "family": "lipsync",
+    "description": "Generate lipsync animations from audio while preserving unique facial details.",
+    "capabilities": {
+      "text": false,
+      "vision": false,
+      "image": false,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false
+    },
+    "inputs": [
+      {
+        "name": "video_url",
+        "label": "Video URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "label": "Audio URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "sync_mode",
+        "label": "Sync mode",
+        "type": "string",
+        "required": false,
+        "default": "cut_off"
+      }
+    ]
   }
 ]

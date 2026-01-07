@@ -121,5 +121,213 @@
         "default": false
       }
     ]
+  },
+  {
+    "id": "kwaivgi/kling-v2.5-turbo-pro",
+    "provider": "replicate",
+    "displayName": "Kling v2.5 Turbo Pro",
+    "family": "i2v",
+    "description": "Image-to-video with cinematic motion and strong prompt adherence.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false
+    },
+    "inputs": [
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "start_image",
+        "label": "Start image",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "label": "Duration (seconds)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "name": "aspect_ratio",
+        "label": "Aspect ratio",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "negative_prompt",
+        "label": "Negative prompt",
+        "type": "string",
+        "required": false
+      }
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.07
+    }
+  },
+  {
+    "id": "kwaivgi/kling-v2.6",
+    "provider": "replicate",
+    "displayName": "Kling v2.6",
+    "family": "i2v",
+    "description": "Image-to-video with optional native audio generation.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false
+    },
+    "inputs": [
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "label": "Negative prompt",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "start_image",
+        "label": "Start image",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "aspect_ratio",
+        "label": "Aspect ratio",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "label": "Duration (seconds)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "name": "generate_audio",
+        "label": "Generate audio",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      }
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.07,
+      "per_second_usd_with_audio": 0.14
+    }
+  },
+  {
+    "id": "kwaivgi/kling-lip-sync",
+    "provider": "replicate",
+    "displayName": "Kling Lip Sync",
+    "family": "lipsync",
+    "description": "Add lip sync to a video using audio or text input.",
+    "capabilities": {
+      "text": true,
+      "vision": false,
+      "image": false,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false
+    },
+    "inputs": [
+      {
+        "name": "video_url",
+        "label": "Video URL",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "video_id",
+        "label": "Video ID",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "audio_file",
+        "label": "Audio file",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "text",
+        "label": "Text",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "voice_id",
+        "label": "Voice ID",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "voice_speed",
+        "label": "Voice speed",
+        "type": "number",
+        "required": false
+      }
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.014
+    }
+  },
+  {
+    "id": "bytedance/latentsync",
+    "provider": "replicate",
+    "displayName": "LatentSync",
+    "family": "lipsync",
+    "description": "Generate high-quality lip sync animations from video + audio.",
+    "capabilities": {
+      "text": false,
+      "vision": false,
+      "image": false,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false
+    },
+    "inputs": [
+      {
+        "name": "video",
+        "label": "Video",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "audio",
+        "label": "Audio",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "guidance_scale",
+        "label": "Guidance scale",
+        "type": "number",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "label": "Seed",
+        "type": "number",
+        "required": false
+      }
+    ],
+    "videoPrices": {
+      "per_request_usd": 0.072
+    }
   }
 ]
