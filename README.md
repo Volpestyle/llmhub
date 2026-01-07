@@ -1,9 +1,10 @@
 # ai-kit
 
 Provider-agnostic inference tooling for Node.js, Go, and Python. The repo standardizes model
-listing, routing, generation, streaming (SSE), and cost estimation across OpenAI, Anthropic,
-Google Gemini, Amazon Bedrock, xAI, and local Ollama endpoints. It also ships shared model metadata
-(scraped per provider + manual catalogs) and a reference OpenAPI spec for HTTP servers.
+listing, routing, generation, streaming (SSE), realtime voice agents (xAI), and cost estimation
+across OpenAI, Anthropic, Google Gemini, Amazon Bedrock, xAI, and local Ollama endpoints. It also
+ships shared model metadata (scraped per provider + manual catalogs) and a reference OpenAPI spec
+for HTTP servers.
 
 ## Packages
 - `packages/node`: Node.js SDK and HTTP handlers
@@ -189,5 +190,10 @@ app.get("/provider-models", handlers.models());
 
 app.listen(3000);
 ```
+
+### Grok voice agent (SDK-only)
+xAI voice agents are exposed via the SDKs, mapping to the realtime WebSocket API.
+See `docs/grok-voice-agent-api.md` for protocol details and `packages/*/README.md`
+for usage examples.
 
 More details live in `docs/README.md`. Testing fixtures are documented in `docs/testing.md`.

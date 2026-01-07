@@ -372,6 +372,43 @@ export interface SpeechGenerateOutput {
   raw?: unknown;
 }
 
+export type VoiceAgentAudioFormat = {
+  type: "audio/pcm" | "audio/pcmu" | "audio/pcma";
+  rate?: number;
+};
+
+export type VoiceAgentAudioConfig = {
+  input?: { format: VoiceAgentAudioFormat };
+  output?: { format: VoiceAgentAudioFormat };
+};
+
+export interface VoiceAgentInput {
+  provider: Provider;
+  model: string;
+  instructions?: string;
+  voice?: string;
+  userText?: string;
+  audio?: VoiceAgentAudioConfig;
+  turnDetection?: "server_vad" | null;
+  tools?: ToolDefinition[];
+  responseModalities?: Array<"text" | "audio">;
+  parameters?: Record<string, unknown>;
+  metadata?: Record<string, string>;
+  signal?: AbortSignal;
+  timeoutMs?: number;
+  toolHandler?: (call: ToolCall) => Promise<unknown>;
+}
+
+export interface VoiceAgentOutput {
+  transcript?: string;
+  audio?: {
+    mime: string;
+    data: string;
+  };
+  toolCalls?: ToolCall[];
+  raw?: unknown;
+}
+
 export interface VideoGenerateInput {
   provider: Provider;
   model: string;
@@ -568,6 +605,7 @@ export interface Kit {
   generateImage(input: ImageGenerateInput): Promise<ImageGenerateOutput>;
   generateMesh(input: MeshGenerateInput): Promise<MeshGenerateOutput>;
   generateSpeech(input: SpeechGenerateInput): Promise<SpeechGenerateOutput>;
+  generateVoiceAgent(input: VoiceAgentInput): Promise<VoiceAgentOutput>;
   generateVideo(input: VideoGenerateInput): Promise<VideoGenerateOutput>;
   generateLipsync(input: LipsyncGenerateInput): Promise<LipsyncGenerateOutput>;
   transcribe(input: TranscribeInput): Promise<TranscribeOutput>;

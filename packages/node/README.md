@@ -54,6 +54,28 @@ for await (const chunk of kit.streamGenerate({
 }
 ```
 
+### Grok voice agent (xAI)
+```ts
+import { createKit, Provider } from "@volpestyle/ai-kit-node";
+
+const kit = createKit({
+  providers: {
+    [Provider.XAI]: { apiKey: process.env.XAI_API_KEY ?? "" },
+  },
+});
+
+const output = await kit.generateVoiceAgent({
+  provider: Provider.XAI,
+  model: "grok-voice", // placeholder for realtime API
+  instructions: "You are a warm, romantic guide.",
+  voice: "Ara",
+  userText: "Plan a date night in Paris.",
+  responseModalities: ["text", "audio"],
+});
+
+console.log(output.transcript, output.audio?.mime);
+```
+
 ### HTTP handlers with SSE
 ```ts
 import express from "express";

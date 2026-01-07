@@ -10,6 +10,7 @@ Key building blocks:
 - Model registry: caches provider model lists, applies scraped metadata and pricing.
 - Model router: resolves a preferred or cheapest model based on constraints.
 - Provider adapters: OpenAI, Anthropic, Google Gemini, Amazon Bedrock, xAI, and Ollama.
+- Voice agents: realtime Grok voice agent support via SDKs (xAI only).
 - HTTP handlers (Node/Go) and ASGI adapter (Python): drop-in endpoints for REST + SSE.
 
 ## Architecture
@@ -23,6 +24,13 @@ router selects a primary model plus fallbacks when you need to auto-resolve acro
 
 SSE streams expose incremental chunks so UIs can render text as it arrives. Node/Go ship HTTP
 handlers and Python ships an ASGI adapter that format `event: chunk` and `event: done` responses.
+
+## Voice agents (xAI)
+The SDKs expose `generateVoiceAgent` / `generate_voice_agent` for Grok Voice Agent sessions. This is
+SDK-only today (no REST endpoint), and maps to the realtime WebSocket API. See
+`docs/grok-voice-agent-api.md` for protocol details and `packages/*/README.md` for usage examples.
+The `model` field is required by the SDKs but ignored by the realtime API (use a placeholder like
+`grok-voice`).
 
 ## Model metadata
 Scraped provider metadata lives in `models/<provider>/scraped_models.json` and is generated

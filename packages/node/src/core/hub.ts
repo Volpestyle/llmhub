@@ -24,6 +24,8 @@ import {
   ModelRecord,
   SpeechGenerateInput,
   SpeechGenerateOutput,
+  VoiceAgentInput,
+  VoiceAgentOutput,
   VideoGenerateInput,
   VideoGenerateOutput,
   OpenAIProviderConfig,
@@ -195,6 +197,30 @@ class DefaultKit implements Kit {
     }
   }
 
+  async generateVoiceAgent(
+    input: VoiceAgentInput,
+  ): Promise<VoiceAgentOutput> {
+    const entitlement = this.entitlementForProvider(input.provider);
+    if (entitlement) {
+      return this.generateVoiceAgentWithContext(entitlement, input);
+    }
+    const adapter = this.requireAdapter(input.provider);
+    if (!adapter.generateVoiceAgent) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support voice agent generation`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.generateVoiceAgent(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(undefined, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
   async generateVideo(
     input: VideoGenerateInput,
   ): Promise<VideoGenerateOutput> {
@@ -340,6 +366,27 @@ class DefaultKit implements Kit {
     }
     try {
       return await adapter.generateSpeech(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
+  private async generateVoiceAgentWithContext(
+    entitlement: EntitlementContext | undefined,
+    input: VoiceAgentInput,
+  ): Promise<VoiceAgentOutput> {
+    const adapter = this.requireAdapter(input.provider, entitlement);
+    if (!adapter.generateVoiceAgent) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support voice agent generation`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.generateVoiceAgent(input);
     } catch (err) {
       const kitErr = toKitError(err);
       this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);

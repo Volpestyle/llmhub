@@ -80,6 +80,33 @@ for chunk in stream:
         print(chunk.textDelta, end="")
 ```
 
+### Grok voice agent (xAI)
+Requires `packages/python-inference` for the xAI provider.
+```py
+import os
+from ai_kit import Kit, KitConfig, VoiceAgentInput
+from ai_kit.providers import XAIConfig
+
+kit = Kit(
+    KitConfig(
+        providers={"xai": XAIConfig(api_key=os.environ.get("XAI_API_KEY", ""))}
+    )
+)
+
+out = kit.generate_voice_agent(
+    VoiceAgentInput(
+        provider="xai",
+        model="grok-voice",  # placeholder for realtime API
+        instructions="You are a warm, romantic guide.",
+        voice="Ara",
+        userText="Plan a date night in Paris.",
+        responseModalities=["text", "audio"],
+    )
+)
+
+print(out.transcript, out.audio.mime if out.audio else None)
+```
+
 ### Local pipelines (optional)
 Local pipelines rely on `torch`, `transformers`, `Pillow`, and `numpy`.
 Install `packages/python-local` first.

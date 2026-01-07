@@ -18,6 +18,7 @@ from ..types import (
     GenerateOutput,
     ImageGenerateInput,
     ImageGenerateOutput,
+    ImageInput,
     Message,
     ModelCapabilities,
     ModelMetadata,
@@ -115,13 +116,46 @@ class OpenAIAdapter:
 
     def generate_image(self, input: ImageGenerateInput) -> ImageGenerateOutput:
         if input.inputImages:
-            raise AiKitError(
-                KitErrorPayload(
-                    kind=ErrorKind.UNSUPPORTED,
-                    message="OpenAI image edits are not supported in this adapter",
-                    provider=self.provider,
+            if len(input.inputImages) > 1:
+                raise AiKitError(
+                    KitErrorPayload(
+                        kind=ErrorKind.VALIDATION,
+                        message="OpenAI image edits only support a single input image",
+                        provider=self.provider,
+                    )
                 )
+            image_bytes, filename, media_type = _load_image_input(input.inputImages[0])
+            url = f"{self.base_url}/v1/images/edits"
+            data: Dict[str, Any] = {
+                "model": input.model,
+                "prompt": input.prompt,
+                "n": 1,
+                "response_format": "b64_json",
+            }
+            if input.size:
+                data["size"] = input.size
+            if isinstance(input.parameters, dict):
+                data.update(input.parameters)
+            payload = request_multipart(
+                "POST",
+                url,
+                self._headers(),
+                data=data,
+                file_field=("image", (filename, image_bytes, media_type)),
+                timeout=self.config.timeout,
             )
+            data = payload.get("data", []) or []
+            image = data[0] if data else {}
+            b64 = image.get("b64_json")
+            if not b64:
+                raise AiKitError(
+                    KitErrorPayload(
+                        kind=ErrorKind.UNKNOWN,
+                        message="OpenAI image response missing base64 data",
+                        provider=self.provider,
+                    )
+                )
+            return ImageGenerateOutput(mime="image/png", data=b64, raw=payload)
         url = f"{self.base_url}/v1/images"
         payload = request_json(
             "POST",
@@ -663,6 +697,55 @@ def _coerce_audio_input(audio: AudioInput | Dict[str, Any]) -> AudioInput:
 
 
 def _decode_base64_audio(raw: str, explicit_type: Optional[str]) -> Tuple[bytes, str]:
+    payload = raw
+    media_type = explicit_type or ""
+    if raw.startswith("data:"):
+        header, _, rest = raw.partition(",")
+        payload = rest
+        if not media_type and ";" in header:
+            media_type = header.split(";", 1)[0].replace("data:", "")
+    if not media_type:
+        media_type = "application/octet-stream"
+    return base64.b64decode(payload), media_type
+
+
+def _load_image_input(image: ImageInput | Dict[str, Any]) -> Tuple[bytes, str, str]:
+    normalized = _coerce_image_input(image)
+    if normalized.base64:
+        data, media_type = _decode_base64_image(normalized.base64, normalized.mediaType)
+        return data, "image", media_type
+    if normalized.url:
+        if normalized.url.startswith("data:"):
+            data, media_type = _decode_base64_image(normalized.url, normalized.mediaType)
+            return data, "image", media_type
+        with urlopen(normalized.url) as response:
+            data = response.read()
+            media_type = normalized.mediaType or response.headers.get("content-type", "") or "application/octet-stream"
+        return data, "image", media_type
+    raise AiKitError(
+        KitErrorPayload(
+            kind=ErrorKind.VALIDATION,
+            message="Image input requires url or base64 data",
+            provider="openai",
+        )
+    )
+
+
+def _coerce_image_input(image: ImageInput | Dict[str, Any]) -> ImageInput:
+    if isinstance(image, ImageInput):
+        return image
+    if isinstance(image, dict):
+        return ImageInput(**image)
+    raise AiKitError(
+        KitErrorPayload(
+            kind=ErrorKind.VALIDATION,
+            message="image must be an object",
+            provider="openai",
+        )
+    )
+
+
+def _decode_base64_image(raw: str, explicit_type: Optional[str]) -> Tuple[bytes, str]:
     payload = raw
     media_type = explicit_type or ""
     if raw.startswith("data:"):

@@ -13,6 +13,8 @@ export type {
   SpeechGenerateInput,
   SpeechGenerateOutput,
   SpeechResponseFormat,
+  VoiceAgentInput,
+  VoiceAgentOutput,
   VideoGenerateInput,
   VideoGenerateOutput,
   LipsyncGenerateInput,

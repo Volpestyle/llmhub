@@ -12,6 +12,8 @@ import {
   Provider,
   SpeechGenerateInput,
   SpeechGenerateOutput,
+  VoiceAgentInput,
+  VoiceAgentOutput,
   TranscribeInput,
   TranscribeOutput,
   VideoGenerateInput,
@@ -27,6 +29,7 @@ export interface ProviderAdapter {
   generateImage?(input: ImageGenerateInput): Promise<ImageGenerateOutput>;
   generateMesh?(input: MeshGenerateInput): Promise<MeshGenerateOutput>;
   generateSpeech?(input: SpeechGenerateInput): Promise<SpeechGenerateOutput>;
+  generateVoiceAgent?(input: VoiceAgentInput): Promise<VoiceAgentOutput>;
   generateVideo?(input: VideoGenerateInput): Promise<VideoGenerateOutput>;
   generateLipsync?(input: LipsyncGenerateInput): Promise<LipsyncGenerateOutput>;
   transcribe?(input: TranscribeInput): Promise<TranscribeOutput>;

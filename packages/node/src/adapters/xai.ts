@@ -6,6 +6,9 @@ import {
   Provider,
   SpeechGenerateInput,
   SpeechGenerateOutput,
+  ToolCall,
+  VoiceAgentInput,
+  VoiceAgentOutput,
   StreamChunk,
   XAIProviderConfig,
   FetchLike,
@@ -18,17 +21,17 @@ import WebSocket from "ws";
 
 const COMPATIBILITY_KEY = "xai:compatibility";
 const SPEECH_MODE_KEY = "xai:speech-mode";
-const DEFAULT_VOICE = "ara";
+const DEFAULT_VOICE = "Ara";
 const DEFAULT_SAMPLE_RATE = 24000;
 const REALTIME_PROTOCOLS = ["realtime", "openai-beta.realtime-v1"];
 
 /** xAI Voice Catalog - https://docs.x.ai/docs/guides/voice */
 export const XAI_VOICES = {
-  ara: { type: "female", tone: "warm, friendly", description: "Default voice, balanced and conversational" },
-  rex: { type: "male", tone: "confident, clear", description: "Professional, ideal for business" },
-  sal: { type: "neutral", tone: "smooth, balanced", description: "Versatile for various contexts" },
-  eve: { type: "female", tone: "energetic, upbeat", description: "Engaging, great for interactive experiences" },
-  leo: { type: "male", tone: "authoritative, strong", description: "Decisive, suitable for instructional content" },
+  Ara: { type: "female", tone: "warm, friendly", description: "Default voice, balanced and conversational" },
+  Rex: { type: "male", tone: "confident, clear", description: "Professional, ideal for business" },
+  Sal: { type: "neutral", tone: "smooth, balanced", description: "Versatile for various contexts" },
+  Eve: { type: "female", tone: "energetic, upbeat", description: "Engaging, great for interactive experiences" },
+  Leo: { type: "male", tone: "authoritative, strong", description: "Decisive, suitable for instructional content" },
 } as const;
 
 export type XAIVoice = keyof typeof XAI_VOICES;
@@ -91,6 +94,270 @@ export class XAIAdapter implements ProviderAdapter {
       });
     }
     return this.openAICompat.generateSpeech({ ...input, provider: Provider.XAI });
+  }
+
+  async generateVoiceAgent(
+    input: VoiceAgentInput,
+  ): Promise<VoiceAgentOutput> {
+    if (!this.config.apiKey) {
+      throw new AiKitError({
+        kind: ErrorKind.ProviderAuth,
+        message: "xAI api key is required for realtime voice agent",
+        provider: Provider.XAI,
+      });
+    }
+    if (!input.userText) {
+      throw new AiKitError({
+        kind: ErrorKind.Validation,
+        message: "Voice agent requires userText",
+        provider: Provider.XAI,
+      });
+    }
+
+    const { audio, mime } = resolveVoiceAgentAudio(input);
+    const session: Record<string, unknown> = {
+      voice: input.voice ?? DEFAULT_VOICE,
+      turn_detection: { type: input.turnDetection ?? null },
+      audio,
+    };
+    if (input.instructions) {
+      session.instructions = input.instructions;
+    }
+    const tools = input.tools?.map((tool) => ({
+      type: "function",
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    }));
+    if (tools && tools.length) {
+      session.tools = tools;
+    }
+    const params =
+      input.parameters && typeof input.parameters === "object"
+        ? (input.parameters as Record<string, unknown>)
+        : undefined;
+    const sessionOverrides =
+      params?.session && typeof params.session === "object" && !Array.isArray(params.session)
+        ? (params.session as Record<string, unknown>)
+        : undefined;
+    if (sessionOverrides) {
+      Object.assign(session, sessionOverrides);
+    }
+    const response: Record<string, unknown> = {
+      modalities: input.responseModalities?.length ? input.responseModalities : ["audio", "text"],
+    };
+    const responseOverrides =
+      params?.response && typeof params.response === "object" && !Array.isArray(params.response)
+        ? (params.response as Record<string, unknown>)
+        : undefined;
+    if (responseOverrides) {
+      Object.assign(response, responseOverrides);
+    }
+
+    const url = resolveRealtimeURL(this.config.baseURL);
+    const signal = input.signal;
+    if (signal?.aborted) {
+      throw new AiKitError({
+        kind: ErrorKind.Timeout,
+        message: "xAI realtime voice agent request was aborted",
+        provider: Provider.XAI,
+      });
+    }
+
+    return await new Promise<VoiceAgentOutput>((resolve, reject) => {
+      const ws = new WebSocket(url, REALTIME_PROTOCOLS, {
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+        },
+      });
+      const audioChunks: Buffer[] = [];
+      const transcriptParts: string[] = [];
+      const toolCalls: ToolCall[] = [];
+      let sessionSent = false;
+      let responseSent = false;
+      let resolved = false;
+      const timeoutMs = input.timeoutMs ?? 30000;
+      const timeoutHandle = timeoutMs
+        ? setTimeout(() => {
+            fail(
+              new AiKitError({
+                kind: ErrorKind.Timeout,
+                message: "xAI realtime voice agent request timed out",
+                provider: Provider.XAI,
+              }),
+            );
+          }, timeoutMs)
+        : null;
+
+      const cleanup = () => {
+        ws.removeAllListeners();
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+          ws.close();
+        }
+        if (signal && abortHandler) {
+          signal.removeEventListener("abort", abortHandler);
+        }
+      };
+      const fail = (err: unknown) => {
+        if (resolved) {
+          return;
+        }
+        resolved = true;
+        cleanup();
+        reject(err);
+      };
+      const finish = () => {
+        if (resolved) {
+          return;
+        }
+        resolved = true;
+        cleanup();
+        const audio = audioChunks.length
+          ? { mime, data: Buffer.concat(audioChunks).toString("base64") }
+          : undefined;
+        resolve({
+          transcript: transcriptParts.join("").trim() || undefined,
+          audio,
+          toolCalls: toolCalls.length ? toolCalls : undefined,
+        });
+      };
+      const abortHandler = signal
+        ? () => {
+            fail(
+              new AiKitError({
+                kind: ErrorKind.Timeout,
+                message: "xAI realtime voice agent request was aborted",
+                provider: Provider.XAI,
+              }),
+            );
+          }
+        : null;
+      if (signal && abortHandler) {
+        signal.addEventListener("abort", abortHandler, { once: true });
+      }
+
+      const handleToolCall = async (payload: Record<string, unknown>) => {
+        const name = typeof payload.name === "string" ? payload.name : "";
+        const callId = typeof payload.call_id === "string" ? payload.call_id : `call_${toolCalls.length + 1}`;
+        const args =
+          typeof payload.arguments === "string"
+            ? payload.arguments
+            : JSON.stringify(payload.arguments ?? {});
+        const call = { id: callId, name, argumentsJson: args };
+        toolCalls.push(call);
+        let outputPayload: unknown = { ok: true };
+        if (typeof input.toolHandler === "function") {
+          try {
+            outputPayload = await input.toolHandler(call);
+          } catch (err) {
+            outputPayload = { ok: false, error: err instanceof Error ? err.message : "tool_handler_error" };
+          }
+        }
+        const output =
+          typeof outputPayload === "string"
+            ? outputPayload
+            : JSON.stringify(outputPayload ?? { ok: true });
+        ws.send(
+          JSON.stringify({
+            type: "conversation.item.create",
+            item: {
+              type: "function_call_output",
+              call_id: callId,
+              output,
+            },
+          }),
+        );
+        ws.send(JSON.stringify({ type: "response.create", response }));
+      };
+
+      ws.on("message", (data) => {
+        let payload: Record<string, unknown>;
+        try {
+          payload = JSON.parse(data.toString()) as Record<string, unknown>;
+        } catch {
+          return;
+        }
+        const type = typeof payload.type === "string" ? payload.type : "";
+        if (type === "conversation.created" && !sessionSent) {
+          sessionSent = true;
+          ws.send(JSON.stringify({ type: "session.update", session }));
+          return;
+        }
+        if (type === "session.updated" && !responseSent) {
+          responseSent = true;
+          ws.send(
+            JSON.stringify({
+              type: "conversation.item.create",
+              item: {
+                type: "message",
+                role: "user",
+                content: [{ type: "input_text", text: input.userText }],
+              },
+            }),
+          );
+          ws.send(JSON.stringify({ type: "response.create", response }));
+          return;
+        }
+        if (type === "response.function_call_arguments.done") {
+          void handleToolCall(payload);
+          return;
+        }
+        if (type === "response.output_audio_transcript.delta") {
+          const delta = payload.delta;
+          if (typeof delta === "string") {
+            transcriptParts.push(delta);
+          }
+          return;
+        }
+        if (type === "response.output_audio.delta") {
+          const delta = payload.delta;
+          if (typeof delta === "string" && delta.length) {
+            audioChunks.push(Buffer.from(delta, "base64"));
+          }
+          return;
+        }
+        if (type === "response.output_audio.done" || type === "response.done") {
+          finish();
+          return;
+        }
+        if (type === "error" || type === "response.error") {
+          const message =
+            typeof payload.error === "object" && payload.error
+              ? String((payload.error as Record<string, unknown>).message ?? "xAI realtime error")
+              : "xAI realtime error";
+          fail(
+            new AiKitError({
+              kind: ErrorKind.Unknown,
+              message,
+              provider: Provider.XAI,
+            }),
+          );
+        }
+      });
+      ws.on("error", (err) => {
+        fail(
+          new AiKitError({
+            kind: ErrorKind.Unknown,
+            message: err instanceof Error ? err.message : "xAI realtime socket error",
+            provider: Provider.XAI,
+          }),
+        );
+      });
+      ws.on("close", () => {
+        if (!resolved) {
+          fail(
+            new AiKitError({
+              kind: ErrorKind.Unknown,
+              message: "xAI realtime socket closed before response completed",
+              provider: Provider.XAI,
+            }),
+          );
+        }
+      });
+    });
   }
 
   streamGenerate(input: GenerateInput): AsyncIterable<StreamChunk> {
@@ -352,4 +619,28 @@ function resolveXaiSpeechOptions(input: SpeechGenerateInput): {
       ? (params.response as Record<string, unknown>)
       : undefined;
   return { formatType, mime, sampleRate, sessionOverrides, responseOverrides };
+}
+
+function resolveVoiceAgentAudio(
+  input: VoiceAgentInput,
+): { audio: Record<string, unknown>; mime: string } {
+  const params =
+    input.parameters && typeof input.parameters === "object"
+      ? (input.parameters as Record<string, unknown>)
+      : undefined;
+  const sampleRateValue =
+    typeof params?.sampleRate === "number" && Number.isFinite(params.sampleRate)
+      ? params.sampleRate
+      : DEFAULT_SAMPLE_RATE;
+  const outputFormat = input.audio?.output?.format;
+  const formatType = outputFormat?.type ?? "audio/pcm";
+  const rate = formatType === "audio/pcm" ? outputFormat?.rate ?? sampleRateValue : 8000;
+  const inputFormat = input.audio?.input?.format ?? { type: formatType, rate };
+  const resolvedOutput = outputFormat ?? { type: formatType, rate };
+  const audio = {
+    input: { format: inputFormat },
+    output: { format: resolvedOutput },
+  };
+  const mime = formatType;
+  return { audio, mime };
 }

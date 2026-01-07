@@ -59,6 +59,22 @@ kit, err := aikit.New(aikit.Config{
 ```
 
 ## Examples
+### Grok voice agent (xAI)
+```go
+out, err := kit.GenerateVoiceAgent(context.Background(), aikit.VoiceAgentInput{
+  Provider: aikit.ProviderXAI,
+  Model: "grok-voice", // placeholder for realtime API
+  Instructions: "You are a warm, romantic guide.",
+  Voice: "Ara",
+  UserText: "Plan a date night in Paris.",
+  ResponseModalities: []string{"text", "audio"},
+})
+if err != nil {
+  panic(err)
+}
+fmt.Println(out.Transcript, out.Audio != nil)
+```
+
 ### HTTP handlers with SSE
 ```go
 import (

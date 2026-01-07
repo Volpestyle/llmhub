@@ -13,6 +13,9 @@ For SSE, the ASGI adapter is a good fit because it supports native streaming.
 - `POST /transcribe` -> audio transcription
 - `POST /generate/stream` -> SSE stream
 
+Note: Grok voice agent support is SDK-only today (realtime WebSocket), so there is no REST
+endpoint in this HTTP surface.
+
 ## Example: list models
 ```bash
 curl "http://localhost:3000/provider-models?providers=openai,anthropic,bedrock,ollama"

@@ -29,6 +29,21 @@ class FalClient:
     def upload_file(self, path: Path) -> str:
         return self._client.upload_file(path)
 
+    def subscribe(
+        self,
+        model: str,
+        *,
+        arguments: Dict[str, Any],
+        with_logs: bool = False,
+        on_queue_update: Optional[Callable[[Any], None]] = None,
+    ) -> Any:
+        return self._client.subscribe(
+            model,
+            arguments=arguments,
+            with_logs=with_logs,
+            on_queue_update=on_queue_update,
+        )
+
     def multiview_to_3d(
         self,
         *,
