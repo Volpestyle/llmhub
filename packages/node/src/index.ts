@@ -15,6 +15,8 @@ export type {
   SpeechResponseFormat,
   VideoGenerateInput,
   VideoGenerateOutput,
+  LipsyncGenerateInput,
+  LipsyncGenerateOutput,
   TranscribeInput,
   TranscribeOutput,
   TranscriptSegment,

@@ -16,6 +16,8 @@ import {
   KitConfig,
   ImageGenerateInput,
   ImageGenerateOutput,
+  LipsyncGenerateInput,
+  LipsyncGenerateOutput,
   ListModelsParams,
   MeshGenerateInput,
   MeshGenerateOutput,
@@ -217,6 +219,30 @@ class DefaultKit implements Kit {
     }
   }
 
+  async generateLipsync(
+    input: LipsyncGenerateInput,
+  ): Promise<LipsyncGenerateOutput> {
+    const entitlement = this.entitlementForProvider(input.provider);
+    if (entitlement) {
+      return this.generateLipsyncWithContext(entitlement, input);
+    }
+    const adapter = this.requireAdapter(input.provider);
+    if (!adapter.generateLipsync) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support lipsync generation`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.generateLipsync(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(undefined, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
   async transcribe(input: TranscribeInput): Promise<TranscribeOutput> {
     const entitlement = this.entitlementForProvider(input.provider);
     if (entitlement) {
@@ -335,6 +361,27 @@ class DefaultKit implements Kit {
     }
     try {
       return await adapter.generateVideo(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
+  private async generateLipsyncWithContext(
+    entitlement: EntitlementContext | undefined,
+    input: LipsyncGenerateInput,
+  ): Promise<LipsyncGenerateOutput> {
+    const adapter = this.requireAdapter(input.provider, entitlement);
+    if (!adapter.generateLipsync) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support lipsync generation`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.generateLipsync(input);
     } catch (err) {
       const kitErr = toKitError(err);
       this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);

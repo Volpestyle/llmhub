@@ -3,6 +3,8 @@ import {
   GenerateOutput,
   ImageGenerateInput,
   ImageGenerateOutput,
+  LipsyncGenerateInput,
+  LipsyncGenerateOutput,
   ListModelsParams,
   MeshGenerateInput,
   MeshGenerateOutput,
@@ -26,6 +28,7 @@ export interface ProviderAdapter {
   generateMesh?(input: MeshGenerateInput): Promise<MeshGenerateOutput>;
   generateSpeech?(input: SpeechGenerateInput): Promise<SpeechGenerateOutput>;
   generateVideo?(input: VideoGenerateInput): Promise<VideoGenerateOutput>;
+  generateLipsync?(input: LipsyncGenerateInput): Promise<LipsyncGenerateOutput>;
   transcribe?(input: TranscribeInput): Promise<TranscribeOutput>;
 }
 

@@ -3,6 +3,8 @@ import { ProviderAdapter } from "../core/provider.js";
 import {
   GenerateInput,
   GenerateOutput,
+  LipsyncGenerateInput,
+  LipsyncGenerateOutput,
   ListModelsParams,
   ModelMetadata,
   Provider,
@@ -55,6 +57,49 @@ const VIDEO_MODELS: ModelMetadata[] = [
   },
 ];
 
+const LIPSYNC_MODELS: ModelMetadata[] = [
+  {
+    id: "kwaivgi/kling-lip-sync",
+    displayName: "Kling Lip Sync",
+    provider: Provider.Replicate,
+    family: "lipsync",
+    capabilities: {
+      text: true,
+      vision: false,
+      image: false,
+      video: true,
+      video_in: true,
+      tool_use: false,
+      structured_output: false,
+      reasoning: false,
+      audio_in: true,
+    },
+    videoPrices: {
+      per_second_usd: 0.014,
+    },
+  },
+  {
+    id: "bytedance/latentsync",
+    displayName: "LatentSync",
+    provider: Provider.Replicate,
+    family: "lipsync",
+    capabilities: {
+      text: false,
+      vision: false,
+      image: false,
+      video: true,
+      video_in: true,
+      tool_use: false,
+      structured_output: false,
+      reasoning: false,
+      audio_in: true,
+    },
+    videoPrices: {
+      per_request_usd: 0.072,
+    },
+  },
+];
+
 async function downloadAsBase64(url: string): Promise<string> {
   const response = await fetch(url);
   if (!response.ok) {
@@ -75,7 +120,7 @@ export class ReplicateAdapter implements ProviderAdapter {
   }
 
   async listModels(_params?: ListModelsParams): Promise<ModelMetadata[]> {
-    return VIDEO_MODELS;
+    return [...VIDEO_MODELS, ...LIPSYNC_MODELS];
   }
 
   async generate(_input: GenerateInput): Promise<GenerateOutput> {
@@ -125,6 +170,72 @@ export class ReplicateAdapter implements ProviderAdapter {
 
     if (input.generateAudio !== undefined) {
       modelInput.generate_audio = input.generateAudio;
+    }
+
+    if (input.parameters) {
+      Object.assign(modelInput, input.parameters);
+    }
+
+    const output = await this.client.run(input.model as `${string}/${string}`, {
+      input: modelInput,
+    });
+
+    let videoUrl: string;
+    if (typeof output === "string") {
+      videoUrl = output;
+    } else if (Array.isArray(output) && output.length > 0) {
+      videoUrl = String(output[0]);
+    } else if (output && typeof output === "object" && "url" in output) {
+      videoUrl = String((output as { url: string }).url);
+    } else {
+      throw new AiKitError({
+        kind: ErrorKind.Unknown,
+        message: "Unexpected output format from Replicate",
+        provider: this.provider,
+      });
+    }
+
+    const data = await downloadAsBase64(videoUrl);
+
+    return {
+      mime: "video/mp4",
+      data,
+      raw: output,
+    };
+  }
+
+  async generateLipsync(input: LipsyncGenerateInput): Promise<LipsyncGenerateOutput> {
+    const modelInput: Record<string, unknown> = {};
+
+    // Video input
+    if (input.videoUrl) {
+      modelInput.video_url = input.videoUrl;
+      modelInput.video = input.videoUrl;
+    } else if (input.videoBase64) {
+      const prefix = "data:video/mp4;base64,";
+      modelInput.video_url = prefix + input.videoBase64;
+      modelInput.video = prefix + input.videoBase64;
+    }
+
+    // Audio input
+    if (input.audioUrl) {
+      modelInput.audio_file = input.audioUrl;
+      modelInput.audio = input.audioUrl;
+    } else if (input.audioBase64) {
+      const prefix = "data:audio/mp3;base64,";
+      modelInput.audio_file = prefix + input.audioBase64;
+      modelInput.audio = prefix + input.audioBase64;
+    }
+
+    // Text-to-speech options (Kling Lip Sync only)
+    if (input.text) {
+      modelInput.text = input.text;
+    }
+    if (input.voiceId) {
+      modelInput.voice_id = input.voiceId;
+    }
+    if (input.voiceSpeed !== undefined) {
+      modelInput.voice_speed = input.voiceSpeed;
     }
 
     if (input.parameters) {

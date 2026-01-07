@@ -392,6 +392,25 @@ export interface VideoGenerateOutput {
   raw?: unknown;
 }
 
+export interface LipsyncGenerateInput {
+  provider: Provider;
+  model: string;
+  videoUrl?: string;
+  videoBase64?: string;
+  audioUrl?: string;
+  audioBase64?: string;
+  text?: string;
+  voiceId?: string;
+  voiceSpeed?: number;
+  parameters?: Record<string, unknown>;
+}
+
+export interface LipsyncGenerateOutput {
+  mime: string;
+  data: string;
+  raw?: unknown;
+}
+
 export type StreamChunk =
   | { type: "delta"; textDelta: string }
   | { type: "tool_call"; call: ToolCall; delta?: string }
@@ -550,6 +569,7 @@ export interface Kit {
   generateMesh(input: MeshGenerateInput): Promise<MeshGenerateOutput>;
   generateSpeech(input: SpeechGenerateInput): Promise<SpeechGenerateOutput>;
   generateVideo(input: VideoGenerateInput): Promise<VideoGenerateOutput>;
+  generateLipsync(input: LipsyncGenerateInput): Promise<LipsyncGenerateOutput>;
   transcribe(input: TranscribeInput): Promise<TranscribeOutput>;
   streamGenerate(input: GenerateInput): AsyncIterable<StreamChunk>;
   streamGenerateWithContext(
