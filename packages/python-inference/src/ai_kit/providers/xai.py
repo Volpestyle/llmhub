@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 import io
 import json
+import logging
+import os
 import wave
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -35,6 +37,8 @@ XAI_VOICES = {
     "Eve": {"type": "female", "tone": "energetic, upbeat", "description": "Engaging, great for interactive experiences"},
     "Leo": {"type": "male", "tone": "authoritative, strong", "description": "Decisive, suitable for instructional content"},
 }
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -141,6 +145,12 @@ class XAIAdapter(OpenAIAdapter):
         timeout = self.config.timeout
         if input.timeoutMs and input.timeoutMs > 0:
             timeout = input.timeoutMs / 1000.0
+        debug_events = os.environ.get("AI_KIT_XAI_DEBUG_EVENTS", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         try:
             ws = create_connection(
                 url,
@@ -152,6 +162,8 @@ class XAIAdapter(OpenAIAdapter):
                 raw = ws.recv()
                 event = json.loads(raw)
                 event_type = event.get("type")
+                if debug_events:
+                    logger.info("xai.realtime event=%s", event_type or "unknown")
                 if event_type == "conversation.created" and not session_sent:
                     session_sent = True
                     ws.send(json.dumps({"type": "session.update", "session": session}))

@@ -241,6 +241,14 @@ def _coerce_media_input(url: Optional[str], data: Optional[str]) -> Any:
     return None
 
 
+def _is_file_output(value: Any) -> bool:
+    return hasattr(value, "read") and callable(getattr(value, "read"))
+
+
+def _read_file_output(value: Any) -> bytes:
+    return value.read()  # type: ignore[no-any-return]
+
+
 def _coerce_video_bytes(output: Any) -> bytes:
     if output is None:
         raise AiKitError(
@@ -252,14 +260,16 @@ def _coerce_video_bytes(output: Any) -> bytes:
         )
     if isinstance(output, bytes):
         return output
+    if _is_file_output(output):
+        return _read_file_output(output)
     if isinstance(output, str):
         if output.startswith("http"):
             return _download_url(output)
         return base64.b64decode(output)
     if isinstance(output, dict):
         url = output.get("url") or output.get("video")
-        if isinstance(url, str):
-            return _download_url(url)
+        if url is not None:
+            return _coerce_video_bytes(url)
     if isinstance(output, (list, tuple)) and output:
         return _coerce_video_bytes(output[0])
     raise AiKitError(
