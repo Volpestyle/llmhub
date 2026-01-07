@@ -23,10 +23,15 @@ def _load_scraped_from_dir(base_dir: Path) -> List[Dict[str, Any]]:
     if not base_dir.exists() or not base_dir.is_dir():
         return []
     models: List[Dict[str, Any]] = []
-    for provider_dir in base_dir.iterdir():
-        if not provider_dir.is_dir():
+    for item in base_dir.iterdir():
+        if item.is_dir():
+            path = item / "scraped_models.json"
+            provider = item.name
+        elif item.is_file() and item.name.endswith("_models.json"):
+            path = item
+            provider = item.name.removesuffix("_models.json")
+        else:
             continue
-        path = provider_dir / "scraped_models.json"
         if not path.exists():
             continue
         try:
@@ -36,7 +41,6 @@ def _load_scraped_from_dir(base_dir: Path) -> List[Dict[str, Any]]:
             continue
         if not isinstance(data, list):
             continue
-        provider = provider_dir.name
         for entry in data:
             if not isinstance(entry, dict):
                 continue
@@ -205,6 +209,62 @@ def estimate_transcribe_cost(
     if rate_per_minute is None or rate_per_minute <= 0:
         return None
     total = round((duration_value / 60.0) * rate_per_minute, 6)
+    return CostBreakdown(
+        input_cost_usd=total,
+        output_cost_usd=0.0,
+        total_cost_usd=total,
+    )
+
+
+def _video_price_per_second(curated: Dict[str, Any]) -> Optional[float]:
+    raw = curated.get("videoPrices") or curated.get("video_prices")
+    if not isinstance(raw, dict):
+        return None
+    per_second = _coerce_float(
+        raw.get("per_second_usd") or raw.get("perSecond") or raw.get("per_second")
+    )
+    if per_second is not None:
+        return per_second
+    per_minute = _coerce_float(raw.get("per_minute_usd") or raw.get("perMinute") or raw.get("per_minute"))
+    if per_minute is not None:
+        return per_minute / 60.0
+    return None
+
+
+def _video_price_per_request(curated: Dict[str, Any]) -> Optional[float]:
+    raw = curated.get("videoPrices") or curated.get("video_prices")
+    if not isinstance(raw, dict):
+        return None
+    return _coerce_float(raw.get("per_request_usd") or raw.get("perRequest") or raw.get("per_request"))
+
+
+def estimate_video_cost(
+    provider: Provider,
+    model_id: str,
+    duration_seconds: Optional[float],
+) -> Optional[CostBreakdown]:
+    curated = find_curated_model(provider, model_id)
+    if not curated:
+        return None
+    per_request = _video_price_per_request(curated)
+    if per_request is not None:
+        return CostBreakdown(
+            input_cost_usd=per_request,
+            output_cost_usd=0.0,
+            total_cost_usd=per_request,
+        )
+    if duration_seconds is None:
+        return None
+    try:
+        duration_value = float(duration_seconds)
+    except (TypeError, ValueError):
+        return None
+    if duration_value <= 0:
+        return None
+    rate_per_second = _video_price_per_second(curated)
+    if rate_per_second is None or rate_per_second <= 0:
+        return None
+    total = round(duration_value * rate_per_second, 6)
     return CostBreakdown(
         input_cost_usd=total,
         output_cost_usd=0.0,

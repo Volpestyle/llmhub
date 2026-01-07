@@ -339,5 +339,40 @@
     "videoPrices": {
       "per_request_usd": 0.072
     }
+  },
+  {
+    "id": "pixverse/lipsync",
+    "provider": "replicate",
+    "displayName": "PixVerse Lipsync",
+    "family": "lipsync",
+    "description": "Generate realistic lipsync animations from audio for high-quality synchronization.",
+    "capabilities": {
+      "text": false,
+      "vision": false,
+      "image": false,
+      "video": true,
+      "video_in": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false,
+      "audio_in": true
+    },
+    "inputs": [
+      {
+        "name": "video",
+        "label": "Video",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "audio",
+        "label": "Audio",
+        "type": "string",
+        "required": true
+      }
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.04
+    }
   }
 ]

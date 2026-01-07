@@ -152,5 +152,20 @@
       "vision": true,
       "image": true
     }
+  },
+  {
+    "id": "grok-voice",
+    "provider": "xai",
+    "displayName": "Grok Voice Agent",
+    "family": "tts",
+    "description": "Real-time voice agent API with low latency and natural speech.",
+    "capabilities": {
+      "text": true,
+      "audio_in": true,
+      "audio_out": true
+    },
+    "audioPrices": {
+      "perMinute": 0.05
+    }
   }
 ]
