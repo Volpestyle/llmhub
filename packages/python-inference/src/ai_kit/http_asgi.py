@@ -11,6 +11,7 @@ from .types import (
     ImageGenerateInput,
     MeshGenerateInput,
     SpeechGenerateInput,
+    VideoGenerateInput,
     TranscribeInput,
     as_json_dict,
 )
@@ -57,6 +58,12 @@ def create_asgi_app(kit: Kit, base_path: str = "") -> ASGIApp:
                 await _respond_text(send, 405, "method not allowed")
                 return
             await _handle_mesh(kit, receive, send)
+            return
+        if path == "/video":
+            if method != "POST":
+                await _respond_text(send, 405, "method not allowed")
+                return
+            await _handle_video(kit, receive, send)
             return
         if path == "/speech":
             if method != "POST":
@@ -127,6 +134,16 @@ async def _handle_mesh(kit: Kit, receive, send) -> None:
         payload = await _read_json(receive)
         input_data = _normalize_mesh_input(payload)
         output = kit.generate_mesh(input_data)
+        await _respond_json(send, 200, as_json_dict(output))
+    except Exception as err:
+        await _send_json_error(send, err)
+
+
+async def _handle_video(kit: Kit, receive, send) -> None:
+    try:
+        payload = await _read_json(receive)
+        input_data = _normalize_video_input(payload)
+        output = kit.generate_video(input_data)
         await _respond_json(send, 200, as_json_dict(output))
     except Exception as err:
         await _send_json_error(send, err)
@@ -333,6 +350,43 @@ def _normalize_mesh_input(payload: Any) -> MeshGenerateInput:
         prompt=prompt,
         inputImages=payload.get("inputImages"),
         format=payload.get("format"),
+    )
+
+
+def _normalize_video_input(payload: Any) -> VideoGenerateInput:
+    if not isinstance(payload, dict):
+        raise AiKitError(
+            KitErrorPayload(
+                kind=ErrorKind.VALIDATION,
+                message="Request body must be a VideoGenerateInput object",
+            )
+        )
+    provider = payload.get("provider")
+    model = payload.get("model")
+    prompt = payload.get("prompt")
+    if not isinstance(provider, str):
+        raise AiKitError(
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="provider is required and must be a string")
+        )
+    if not isinstance(model, str):
+        raise AiKitError(
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="model is required and must be a string")
+        )
+    if not isinstance(prompt, str):
+        raise AiKitError(
+            KitErrorPayload(kind=ErrorKind.VALIDATION, message="prompt is required and must be a string")
+        )
+    return VideoGenerateInput(
+        provider=provider,
+        model=model,
+        prompt=prompt,
+        startImage=payload.get("startImage"),
+        inputImages=payload.get("inputImages"),
+        duration=payload.get("duration"),
+        aspectRatio=payload.get("aspectRatio"),
+        negativePrompt=payload.get("negativePrompt"),
+        generateAudio=payload.get("generateAudio"),
+        parameters=payload.get("parameters"),
     )
 
 

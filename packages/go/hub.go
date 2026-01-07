@@ -15,6 +15,7 @@ type Config struct {
 	Google         *GoogleConfig
 	Bedrock        *BedrockConfig
 	Ollama         *OllamaConfig
+	Replicate      *ReplicateConfig
 	HTTPClient     *http.Client
 	RegistryTTL    time.Duration
 	Adapters       map[Provider]ProviderAdapter
@@ -68,12 +69,21 @@ type OllamaConfig struct {
 	DefaultUseResponses bool
 }
 
+type ReplicateConfig struct {
+	APIKey   string
+	APIKeys  []string
+	BaseURL  string
+	TimeoutS float64
+}
+
 type ProviderAdapter interface {
 	ListModels(ctx context.Context) ([]ModelMetadata, error)
 	Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error)
 	GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error)
 	GenerateMesh(ctx context.Context, in MeshGenerateInput) (MeshGenerateOutput, error)
 	GenerateSpeech(ctx context.Context, in SpeechGenerateInput) (SpeechGenerateOutput, error)
+	GenerateVideo(ctx context.Context, in VideoGenerateInput) (VideoGenerateOutput, error)
+	GenerateVoiceAgent(ctx context.Context, in VoiceAgentInput) (VoiceAgentOutput, error)
 	Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error)
 	Stream(ctx context.Context, in GenerateInput) (<-chan StreamChunk, error)
 }
@@ -157,6 +167,16 @@ func New(config Config) (*Kit, error) {
 			keyPools[ProviderOllama] = newKeyPool(keys)
 		}
 		adapters[ProviderOllama] = newOllamaAdapter(&cfg, client)
+	}
+	if config.Replicate != nil && adapters[ProviderReplicate] == nil {
+		keys := normalizeKeys(config.Replicate.APIKey, config.Replicate.APIKeys)
+		if len(keys) == 0 {
+			return nil, fmt.Errorf("replicate api key is required")
+		}
+		cfg := *config.Replicate
+		cfg.APIKey = keys[0]
+		adapters[ProviderReplicate] = newReplicateAdapter(&cfg, client)
+		keyPools[ProviderReplicate] = newKeyPool(keys)
 	}
 	if len(adapters) == 0 && config.AdapterFactory == nil {
 		return nil, fmt.Errorf("at least one provider config or adapter is required")
@@ -293,6 +313,38 @@ func (h *Kit) GenerateSpeech(ctx context.Context, in SpeechGenerateInput) (Speec
 	return output, nil
 }
 
+func (h *Kit) GenerateVideo(ctx context.Context, in VideoGenerateInput) (VideoGenerateOutput, error) {
+	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
+		return h.GenerateVideoWithContext(ctx, entitlement, in)
+	}
+	adapter, ok := h.adapters[in.Provider]
+	if !ok {
+		return VideoGenerateOutput{}, fmt.Errorf("provider %s is not configured", in.Provider)
+	}
+	output, err := adapter.GenerateVideo(ctx, in)
+	if err != nil {
+		h.registry.LearnModelUnavailable(nil, in.Provider, in.Model, err)
+		return VideoGenerateOutput{}, err
+	}
+	return output, nil
+}
+
+func (h *Kit) GenerateVoiceAgent(ctx context.Context, in VoiceAgentInput) (VoiceAgentOutput, error) {
+	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
+		return h.GenerateVoiceAgentWithContext(ctx, entitlement, in)
+	}
+	adapter, ok := h.adapters[in.Provider]
+	if !ok {
+		return VoiceAgentOutput{}, fmt.Errorf("provider %s is not configured", in.Provider)
+	}
+	output, err := adapter.GenerateVoiceAgent(ctx, in)
+	if err != nil {
+		h.registry.LearnModelUnavailable(nil, in.Provider, in.Model, err)
+		return VoiceAgentOutput{}, err
+	}
+	return output, nil
+}
+
 func (h *Kit) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
 	if entitlement := h.entitlementForProvider(in.Provider); entitlement != nil {
 		return h.TranscribeWithContext(ctx, entitlement, in)
@@ -327,6 +379,30 @@ func (h *Kit) GenerateSpeechWithContext(ctx context.Context, entitlement *Entitl
 		return SpeechGenerateOutput{}, err
 	}
 	output, err := adapter.GenerateSpeech(ctx, in)
+	if err != nil {
+		h.registry.LearnModelUnavailable(entitlement, in.Provider, in.Model, err)
+	}
+	return output, err
+}
+
+func (h *Kit) GenerateVideoWithContext(ctx context.Context, entitlement *EntitlementContext, in VideoGenerateInput) (VideoGenerateOutput, error) {
+	adapter, err := h.factory(in.Provider, entitlement)
+	if err != nil {
+		return VideoGenerateOutput{}, err
+	}
+	output, err := adapter.GenerateVideo(ctx, in)
+	if err != nil {
+		h.registry.LearnModelUnavailable(entitlement, in.Provider, in.Model, err)
+	}
+	return output, err
+}
+
+func (h *Kit) GenerateVoiceAgentWithContext(ctx context.Context, entitlement *EntitlementContext, in VoiceAgentInput) (VoiceAgentOutput, error) {
+	adapter, err := h.factory(in.Provider, entitlement)
+	if err != nil {
+		return VoiceAgentOutput{}, err
+	}
+	output, err := adapter.GenerateVoiceAgent(ctx, in)
 	if err != nil {
 		h.registry.LearnModelUnavailable(entitlement, in.Provider, in.Model, err)
 	}
@@ -467,6 +543,13 @@ func newAdapterFactory(config Config, client *http.Client, adapters map[Provider
 			cfg := *config.Ollama
 			cfg.APIKey = apiKey
 			return newOllamaAdapter(&cfg, client), nil
+		case ProviderReplicate:
+			if config.Replicate == nil {
+				return nil, fmt.Errorf("replicate config is not available")
+			}
+			cfg := *config.Replicate
+			cfg.APIKey = apiKey
+			return newReplicateAdapter(&cfg, client), nil
 		default:
 			return nil, fmt.Errorf("provider %s is not configured", provider)
 		}

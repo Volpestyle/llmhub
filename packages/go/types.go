@@ -1,5 +1,7 @@
 package aikit
 
+import "context"
+
 type Provider string
 
 const (
@@ -9,6 +11,8 @@ const (
 	ProviderGoogle    Provider = "google"
 	ProviderBedrock   Provider = "bedrock"
 	ProviderOllama    Provider = "ollama"
+	ProviderReplicate Provider = "replicate"
+	ProviderFal       Provider = "fal"
 	ProviderLocal     Provider = "local"
 )
 
@@ -236,6 +240,65 @@ type SpeechGenerateOutput struct {
 	Mime string      `json:"mime"`
 	Data string      `json:"data"`
 	Raw  interface{} `json:"raw,omitempty"`
+}
+
+type VideoGenerateInput struct {
+	Provider       Provider               `json:"provider"`
+	Model          string                 `json:"model"`
+	Prompt         string                 `json:"prompt"`
+	StartImage     string                 `json:"startImage,omitempty"`
+	InputImages    []ImageInput           `json:"inputImages,omitempty"`
+	Duration       *float64               `json:"duration,omitempty"`
+	AspectRatio    string                 `json:"aspectRatio,omitempty"`
+	NegativePrompt string                 `json:"negativePrompt,omitempty"`
+	GenerateAudio  *bool                  `json:"generateAudio,omitempty"`
+	Parameters     map[string]interface{} `json:"parameters,omitempty"`
+}
+
+type VideoGenerateOutput struct {
+	Mime     string      `json:"mime"`
+	Data     string      `json:"data"`
+	Duration *float64    `json:"duration,omitempty"`
+	Raw      interface{} `json:"raw,omitempty"`
+}
+
+type VoiceAgentAudioFormat struct {
+	Type string `json:"type"`
+	Rate int    `json:"rate,omitempty"`
+}
+
+type VoiceAgentAudioIO struct {
+	Format *VoiceAgentAudioFormat `json:"format,omitempty"`
+}
+
+type VoiceAgentAudioConfig struct {
+	Input  *VoiceAgentAudioIO `json:"input,omitempty"`
+	Output *VoiceAgentAudioIO `json:"output,omitempty"`
+}
+
+type VoiceAgentToolHandler func(ctx context.Context, call ToolCall) (interface{}, error)
+
+type VoiceAgentInput struct {
+	Provider           Provider               `json:"provider"`
+	Model              string                 `json:"model"`
+	Instructions       string                 `json:"instructions,omitempty"`
+	Voice              string                 `json:"voice,omitempty"`
+	UserText           string                 `json:"userText,omitempty"`
+	Audio              *VoiceAgentAudioConfig `json:"audio,omitempty"`
+	TurnDetection      string                 `json:"turnDetection,omitempty"`
+	Tools              []ToolDefinition       `json:"tools,omitempty"`
+	ResponseModalities []string               `json:"responseModalities,omitempty"`
+	Parameters         map[string]interface{} `json:"parameters,omitempty"`
+	Metadata           map[string]string      `json:"metadata,omitempty"`
+	TimeoutMs          int                    `json:"timeoutMs,omitempty"`
+	ToolHandler        VoiceAgentToolHandler  `json:"-"`
+}
+
+type VoiceAgentOutput struct {
+	Transcript string               `json:"transcript,omitempty"`
+	Audio      *SpeechGenerateOutput `json:"audio,omitempty"`
+	ToolCalls  []ToolCall           `json:"toolCalls,omitempty"`
+	Raw        interface{}          `json:"raw,omitempty"`
 }
 
 type TranscriptSegment struct {

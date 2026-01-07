@@ -314,6 +314,26 @@ func (a *openAIAdapter) GenerateSpeech(ctx context.Context, in SpeechGenerateInp
 	}, nil
 }
 
+func (a *openAIAdapter) GenerateVideo(ctx context.Context, in VideoGenerateInput) (VideoGenerateOutput, error) {
+	_ = ctx
+	_ = in
+	return VideoGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "OpenAI video generation is not supported",
+		Provider: a.provider,
+	}
+}
+
+func (a *openAIAdapter) GenerateVoiceAgent(ctx context.Context, in VoiceAgentInput) (VoiceAgentOutput, error) {
+	_ = ctx
+	_ = in
+	return VoiceAgentOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "OpenAI voice agent is not supported",
+		Provider: a.provider,
+	}
+}
+
 func (a *openAIAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
 	fileName, data, mediaType, err := a.loadAudioInput(ctx, in.Audio)
 	if err != nil {

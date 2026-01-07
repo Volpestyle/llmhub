@@ -23,6 +23,8 @@ type Fixture struct {
 	Stream   []aikit.StreamChunk
 	Image    *aikit.ImageGenerateOutput
 	Mesh     *aikit.MeshGenerateOutput
+	Video    *aikit.VideoGenerateOutput
+	VoiceAgent *aikit.VoiceAgentOutput
 	Transcribe *aikit.TranscribeOutput
 }
 
@@ -31,6 +33,8 @@ type FixtureCalls struct {
 	Stream   []aikit.GenerateInput
 	Image    []aikit.ImageGenerateInput
 	Mesh     []aikit.MeshGenerateInput
+	Video    []aikit.VideoGenerateInput
+	VoiceAgent []aikit.VoiceAgentInput
 	Transcribe []aikit.TranscribeInput
 }
 
@@ -85,6 +89,32 @@ func (f *FixtureAdapter) GenerateMesh(ctx context.Context, in aikit.MeshGenerate
 		return aikit.MeshGenerateOutput{}, fmt.Errorf("fixture for mesh is missing (key: %s)", f.keyFor("mesh", in.Provider, in.Model, in))
 	}
 	return *entry.Mesh, nil
+}
+
+func (f *FixtureAdapter) GenerateVideo(ctx context.Context, in aikit.VideoGenerateInput) (aikit.VideoGenerateOutput, error) {
+	_ = ctx
+	f.Calls.Video = append(f.Calls.Video, in)
+	entry, err := f.lookupFixture("video", in.Provider, in.Model, in)
+	if err != nil {
+		return aikit.VideoGenerateOutput{}, err
+	}
+	if entry.Video == nil {
+		return aikit.VideoGenerateOutput{}, fmt.Errorf("fixture for video is missing (key: %s)", f.keyFor("video", in.Provider, in.Model, in))
+	}
+	return *entry.Video, nil
+}
+
+func (f *FixtureAdapter) GenerateVoiceAgent(ctx context.Context, in aikit.VoiceAgentInput) (aikit.VoiceAgentOutput, error) {
+	_ = ctx
+	f.Calls.VoiceAgent = append(f.Calls.VoiceAgent, in)
+	entry, err := f.lookupFixture("voice_agent", in.Provider, in.Model, in)
+	if err != nil {
+		return aikit.VoiceAgentOutput{}, err
+	}
+	if entry.VoiceAgent == nil {
+		return aikit.VoiceAgentOutput{}, fmt.Errorf("fixture for voice_agent is missing (key: %s)", f.keyFor("voice_agent", in.Provider, in.Model, in))
+	}
+	return *entry.VoiceAgent, nil
 }
 
 func (f *FixtureAdapter) Transcribe(ctx context.Context, in aikit.TranscribeInput) (aikit.TranscribeOutput, error) {
@@ -166,6 +196,15 @@ func ImageKey(input aikit.ImageGenerateInput) string {
 func MeshKey(input aikit.MeshGenerateInput) string {
 	return DefaultFixtureKey(FixtureKeyInput{
 		Method:   "mesh",
+		Provider: input.Provider,
+		Model:    input.Model,
+		Input:    input,
+	})
+}
+
+func VoiceAgentKey(input aikit.VoiceAgentInput) string {
+	return DefaultFixtureKey(FixtureKeyInput{
+		Method:   "voice_agent",
 		Provider: input.Provider,
 		Model:    input.Model,
 		Input:    input,

@@ -5,6 +5,7 @@ from .xai import XAIAdapter, XAIConfig
 from .ollama import OllamaAdapter, OllamaConfig
 from .bedrock import BedrockAdapter, BedrockConfig
 from .replicate import ReplicateAdapter, ReplicateConfig
+from .fal import FalAdapter, FalConfig
 
 __all__ = [
     "OpenAIAdapter",
@@ -21,4 +22,6 @@ __all__ = [
     "BedrockConfig",
     "ReplicateAdapter",
     "ReplicateConfig",
+    "FalAdapter",
+    "FalConfig",
 ]

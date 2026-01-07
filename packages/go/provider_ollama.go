@@ -51,6 +51,36 @@ func (a *ollamaAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) 
 	}
 }
 
+func (a *ollamaAdapter) GenerateSpeech(ctx context.Context, in SpeechGenerateInput) (SpeechGenerateOutput, error) {
+	_ = ctx
+	_ = in
+	return SpeechGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Ollama speech generation is not supported",
+		Provider: ProviderOllama,
+	}
+}
+
+func (a *ollamaAdapter) GenerateVideo(ctx context.Context, in VideoGenerateInput) (VideoGenerateOutput, error) {
+	_ = ctx
+	_ = in
+	return VideoGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Ollama video generation is not supported",
+		Provider: ProviderOllama,
+	}
+}
+
+func (a *ollamaAdapter) GenerateVoiceAgent(ctx context.Context, in VoiceAgentInput) (VoiceAgentOutput, error) {
+	_ = ctx
+	_ = in
+	return VoiceAgentOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Ollama voice agent is not supported",
+		Provider: ProviderOllama,
+	}
+}
+
 func (a *ollamaAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
 	return TranscribeOutput{}, &KitError{
 		Kind:     ErrorUnsupported,

@@ -191,6 +191,36 @@ func (a *bedrockAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput)
 	}
 }
 
+func (a *bedrockAdapter) GenerateSpeech(ctx context.Context, in SpeechGenerateInput) (SpeechGenerateOutput, error) {
+	_ = ctx
+	_ = in
+	return SpeechGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Bedrock speech generation is not supported",
+		Provider: a.provider,
+	}
+}
+
+func (a *bedrockAdapter) GenerateVideo(ctx context.Context, in VideoGenerateInput) (VideoGenerateOutput, error) {
+	_ = ctx
+	_ = in
+	return VideoGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Bedrock video generation is not supported",
+		Provider: a.provider,
+	}
+}
+
+func (a *bedrockAdapter) GenerateVoiceAgent(ctx context.Context, in VoiceAgentInput) (VoiceAgentOutput, error) {
+	_ = ctx
+	_ = in
+	return VoiceAgentOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Bedrock voice agent is not supported",
+		Provider: a.provider,
+	}
+}
+
 func (a *bedrockAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
 	return TranscribeOutput{}, &KitError{
 		Kind:     ErrorUnsupported,

@@ -121,6 +121,36 @@ func (g *googleAdapter) GenerateMesh(ctx context.Context, in MeshGenerateInput) 
 	}
 }
 
+func (g *googleAdapter) GenerateSpeech(ctx context.Context, in SpeechGenerateInput) (SpeechGenerateOutput, error) {
+	_ = ctx
+	_ = in
+	return SpeechGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Gemini speech generation is not supported",
+		Provider: ProviderGoogle,
+	}
+}
+
+func (g *googleAdapter) GenerateVideo(ctx context.Context, in VideoGenerateInput) (VideoGenerateOutput, error) {
+	_ = ctx
+	_ = in
+	return VideoGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Gemini video generation is not supported",
+		Provider: ProviderGoogle,
+	}
+}
+
+func (g *googleAdapter) GenerateVoiceAgent(ctx context.Context, in VoiceAgentInput) (VoiceAgentOutput, error) {
+	_ = ctx
+	_ = in
+	return VoiceAgentOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Gemini voice agent is not supported",
+		Provider: ProviderGoogle,
+	}
+}
+
 func (g *googleAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
 	return TranscribeOutput{}, &KitError{
 		Kind:     ErrorUnsupported,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 
 Provider = str
@@ -243,6 +243,27 @@ class MeshGenerateOutput:
 
 
 @dataclass
+class LipsyncGenerateInput:
+    provider: Provider
+    model: str
+    videoUrl: Optional[str] = None
+    videoBase64: Optional[str] = None
+    audioUrl: Optional[str] = None
+    audioBase64: Optional[str] = None
+    text: Optional[str] = None
+    voiceId: Optional[str] = None
+    voiceSpeed: Optional[float] = None
+    parameters: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class LipsyncGenerateOutput:
+    mime: str
+    data: str
+    raw: Optional[Any] = None
+
+
+@dataclass
 class SpeechGenerateInput:
     provider: Provider
     model: str
@@ -259,6 +280,59 @@ class SpeechGenerateInput:
 class SpeechGenerateOutput:
     mime: str
     data: str
+    raw: Optional[Any] = None
+
+
+@dataclass
+class VideoGenerateInput:
+    provider: Provider
+    model: str
+    prompt: str
+    startImage: Optional[str] = None
+    inputImages: Optional[List[ImageInput]] = None
+    duration: Optional[float] = None
+    aspectRatio: Optional[str] = None
+    negativePrompt: Optional[str] = None
+    generateAudio: Optional[bool] = None
+    parameters: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class VideoGenerateOutput:
+    mime: str
+    data: str
+    duration: Optional[float] = None
+    raw: Optional[Any] = None
+
+
+@dataclass
+class VoiceAgentAudioConfig:
+    input: Optional[Dict[str, Any]] = None
+    output: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class VoiceAgentInput:
+    provider: Provider
+    model: str
+    instructions: Optional[str] = None
+    voice: Optional[str] = None
+    userText: Optional[str] = None
+    audio: Optional[VoiceAgentAudioConfig] = None
+    turnDetection: Optional[str] = None
+    tools: Optional[List["ToolDefinition"]] = None
+    responseModalities: Optional[List[str]] = None
+    parameters: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, str]] = None
+    timeoutMs: Optional[int] = None
+    toolHandler: Optional[Callable[["ToolCall"], Any]] = None
+
+
+@dataclass
+class VoiceAgentOutput:
+    transcript: Optional[str] = None
+    audio: Optional[SpeechGenerateOutput] = None
+    toolCalls: Optional[List["ToolCall"]] = None
     raw: Optional[Any] = None
 
 

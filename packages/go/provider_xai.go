@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"nhooyr.io/websocket"
 )
@@ -88,6 +89,273 @@ func (x *xaiAdapter) GenerateSpeech(ctx context.Context, in SpeechGenerateInput)
 		return x.generateSpeechRealtime(ctx, in)
 	}
 	return x.openai.GenerateSpeech(ctx, in)
+}
+
+func (x *xaiAdapter) GenerateVideo(ctx context.Context, in VideoGenerateInput) (VideoGenerateOutput, error) {
+	_ = ctx
+	_ = in
+	return VideoGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "xAI video generation is not supported",
+		Provider: ProviderXAI,
+	}
+}
+
+func (x *xaiAdapter) GenerateVoiceAgent(ctx context.Context, in VoiceAgentInput) (VoiceAgentOutput, error) {
+	if strings.TrimSpace(x.apiKey) == "" {
+		return VoiceAgentOutput{}, &KitError{
+			Kind:     ErrorProviderAuth,
+			Message:  "xAI api key is required for realtime voice agent",
+			Provider: ProviderXAI,
+		}
+	}
+	if strings.TrimSpace(in.UserText) == "" {
+		return VoiceAgentOutput{}, &KitError{
+			Kind:     ErrorValidation,
+			Message:  "Voice agent requires userText",
+			Provider: ProviderXAI,
+		}
+	}
+
+	ctx, cancel := withTimeout(ctx, in.TimeoutMs)
+	if cancel != nil {
+		defer cancel()
+	}
+
+	audio, mime := resolveXaiVoiceAgentAudio(in)
+	session := map[string]interface{}{
+		"voice": xaiDefaultVoice,
+		"turn_detection": map[string]interface{}{
+			"type": nil,
+		},
+		"audio": audio,
+	}
+	if strings.TrimSpace(in.Voice) != "" {
+		session["voice"] = in.Voice
+	}
+	if strings.TrimSpace(in.Instructions) != "" {
+		session["instructions"] = in.Instructions
+	}
+	if strings.TrimSpace(in.TurnDetection) != "" {
+		session["turn_detection"] = map[string]interface{}{
+			"type": in.TurnDetection,
+		}
+	}
+	if len(in.Tools) > 0 {
+		tools := make([]map[string]interface{}, 0, len(in.Tools))
+		for _, tool := range in.Tools {
+			tools = append(tools, map[string]interface{}{
+				"type":        "function",
+				"name":        tool.Name,
+				"description": tool.Description,
+				"parameters":  tool.Parameters,
+			})
+		}
+		session["tools"] = tools
+	}
+	if in.Parameters != nil {
+		if raw, ok := in.Parameters["session"]; ok {
+			if overrides, ok := raw.(map[string]interface{}); ok {
+				for key, value := range overrides {
+					session[key] = value
+				}
+			}
+		}
+	}
+	response := map[string]interface{}{
+		"modalities": []string{"audio", "text"},
+	}
+	if len(in.ResponseModalities) > 0 {
+		response["modalities"] = in.ResponseModalities
+	}
+	if in.Parameters != nil {
+		if raw, ok := in.Parameters["response"]; ok {
+			if overrides, ok := raw.(map[string]interface{}); ok {
+				for key, value := range overrides {
+					response[key] = value
+				}
+			}
+		}
+	}
+
+	url, err := resolveRealtimeURL(x.baseURL)
+	if err != nil {
+		return VoiceAgentOutput{}, err
+	}
+	header := http.Header{}
+	header.Set("Authorization", fmt.Sprintf("Bearer %s", x.apiKey))
+	conn, _, err := websocket.Dial(ctx, url, &websocket.DialOptions{
+		HTTPHeader: header,
+		Subprotocols: []string{
+			"realtime",
+			"openai-beta.realtime-v1",
+		},
+	})
+	if err != nil {
+		return VoiceAgentOutput{}, err
+	}
+	defer conn.Close(websocket.StatusNormalClosure, "")
+
+	sessionSent := false
+	responseSent := false
+	var audioBuffer bytes.Buffer
+	var transcript strings.Builder
+	toolCalls := make([]ToolCall, 0)
+
+	for {
+		_, data, readErr := conn.Read(ctx)
+		if readErr != nil {
+			return VoiceAgentOutput{}, readErr
+		}
+		var event map[string]interface{}
+		if err := json.Unmarshal(data, &event); err != nil {
+			continue
+		}
+		eventType, _ := event["type"].(string)
+		switch eventType {
+		case "conversation.created":
+			if !sessionSent {
+				sessionSent = true
+				if err := writeRealtimeEvent(ctx, conn, map[string]interface{}{
+					"type":    "session.update",
+					"session": session,
+				}); err != nil {
+					return VoiceAgentOutput{}, err
+				}
+			}
+		case "session.updated":
+			if !responseSent {
+				responseSent = true
+				if err := writeRealtimeEvent(ctx, conn, map[string]interface{}{
+					"type": "conversation.item.create",
+					"item": map[string]interface{}{
+						"type": "message",
+						"role": "user",
+						"content": []map[string]interface{}{
+							{
+								"type": "input_text",
+								"text": in.UserText,
+							},
+						},
+					},
+				}); err != nil {
+					return VoiceAgentOutput{}, err
+				}
+				if err := writeRealtimeEvent(ctx, conn, map[string]interface{}{
+					"type":     "response.create",
+					"response": response,
+				}); err != nil {
+					return VoiceAgentOutput{}, err
+				}
+			}
+		case "response.function_call_arguments.done":
+			name, _ := event["name"].(string)
+			callID, _ := event["call_id"].(string)
+			if callID == "" {
+				callID = fmt.Sprintf("call_%d", len(toolCalls)+1)
+			}
+			var argsJSON string
+			if rawArgs, ok := event["arguments"].(string); ok {
+				argsJSON = rawArgs
+			} else if rawArgs, ok := event["arguments"]; ok && rawArgs != nil {
+				encoded, err := json.Marshal(rawArgs)
+				if err == nil {
+					argsJSON = string(encoded)
+				}
+			}
+			if argsJSON == "" {
+				argsJSON = "{}"
+			}
+			call := ToolCall{
+				ID:            callID,
+				Name:          name,
+				ArgumentsJSON: argsJSON,
+			}
+			toolCalls = append(toolCalls, call)
+
+			var outputPayload interface{} = map[string]interface{}{"ok": true}
+			if in.ToolHandler != nil {
+				result, err := in.ToolHandler(ctx, call)
+				if err != nil {
+					outputPayload = map[string]interface{}{
+						"ok":    false,
+						"error": err.Error(),
+					}
+				} else if result != nil {
+					outputPayload = result
+				} else {
+					outputPayload = map[string]interface{}{"ok": true}
+				}
+			}
+			output := ""
+			switch value := outputPayload.(type) {
+			case string:
+				output = value
+			default:
+				encoded, err := json.Marshal(value)
+				if err != nil {
+					encoded = []byte(`{"ok":false,"error":"tool_output_encode_failed"}`)
+				}
+				output = string(encoded)
+			}
+			if err := writeRealtimeEvent(ctx, conn, map[string]interface{}{
+				"type": "conversation.item.create",
+				"item": map[string]interface{}{
+					"type":   "function_call_output",
+					"call_id": callID,
+					"output": output,
+				},
+			}); err != nil {
+				return VoiceAgentOutput{}, err
+			}
+			if err := writeRealtimeEvent(ctx, conn, map[string]interface{}{
+				"type":     "response.create",
+				"response": response,
+			}); err != nil {
+				return VoiceAgentOutput{}, err
+			}
+		case "response.output_audio_transcript.delta":
+			if delta, ok := event["delta"].(string); ok && delta != "" {
+				transcript.WriteString(delta)
+			}
+		case "response.output_audio.delta":
+			delta, _ := event["delta"].(string)
+			if delta == "" {
+				continue
+			}
+			decoded, err := base64.StdEncoding.DecodeString(delta)
+			if err != nil {
+				return VoiceAgentOutput{}, err
+			}
+			audioBuffer.Write(decoded)
+		case "response.output_audio.done", "response.done":
+			out := VoiceAgentOutput{
+				Transcript: strings.TrimSpace(transcript.String()),
+			}
+			if audioBuffer.Len() > 0 {
+				out.Audio = &SpeechGenerateOutput{
+					Mime: mime,
+					Data: base64.StdEncoding.EncodeToString(audioBuffer.Bytes()),
+				}
+			}
+			if len(toolCalls) > 0 {
+				out.ToolCalls = toolCalls
+			}
+			return out, nil
+		case "error", "response.error":
+			message := "xAI realtime error"
+			if errObj, ok := event["error"].(map[string]interface{}); ok {
+				if value, ok := errObj["message"].(string); ok && value != "" {
+					message = value
+				}
+			}
+			return VoiceAgentOutput{}, &KitError{
+				Kind:     ErrorUnknown,
+				Message:  message,
+				Provider: ProviderXAI,
+			}
+		}
+	}
 }
 
 func (x *xaiAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
@@ -342,6 +610,61 @@ func resolveXaiSpeechOptions(in SpeechGenerateInput) (string, int, string, map[s
 	return formatType, sampleRate, mime, sessionOverrides, responseOverrides, nil
 }
 
+func resolveXaiVoiceAgentAudio(in VoiceAgentInput) (map[string]interface{}, string) {
+	formatType := "audio/pcm"
+	outputRate := 0
+	if in.Audio != nil && in.Audio.Output != nil && in.Audio.Output.Format != nil {
+		if value := strings.TrimSpace(in.Audio.Output.Format.Type); value != "" {
+			formatType = value
+		}
+		if in.Audio.Output.Format.Rate > 0 {
+			outputRate = in.Audio.Output.Format.Rate
+		}
+	}
+	paramsRate := 0
+	if in.Parameters != nil {
+		if rate, ok := coerceNumber(in.Parameters["sampleRate"]); ok {
+			paramsRate = rate
+		}
+	}
+	sampleRate := xaiDefaultSampleRate
+	if formatType != "audio/pcm" {
+		sampleRate = 8000
+	} else if outputRate > 0 {
+		sampleRate = outputRate
+	} else if paramsRate > 0 {
+		sampleRate = paramsRate
+	}
+	if outputRate <= 0 {
+		outputRate = sampleRate
+	}
+	inputType := formatType
+	inputRate := outputRate
+	if in.Audio != nil && in.Audio.Input != nil && in.Audio.Input.Format != nil {
+		if value := strings.TrimSpace(in.Audio.Input.Format.Type); value != "" {
+			inputType = value
+		}
+		if in.Audio.Input.Format.Rate > 0 {
+			inputRate = in.Audio.Input.Format.Rate
+		}
+	}
+	audio := map[string]interface{}{
+		"input": map[string]interface{}{
+			"format": map[string]interface{}{
+				"type": inputType,
+				"rate": inputRate,
+			},
+		},
+		"output": map[string]interface{}{
+			"format": map[string]interface{}{
+				"type": formatType,
+				"rate": outputRate,
+			},
+		},
+	}
+	return audio, formatType
+}
+
 func coerceNumber(value interface{}) (int, bool) {
 	switch v := value.(type) {
 	case int:
@@ -354,4 +677,11 @@ func coerceNumber(value interface{}) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+func withTimeout(ctx context.Context, timeoutMs int) (context.Context, context.CancelFunc) {
+	if timeoutMs <= 0 {
+		return ctx, nil
+	}
+	return context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
 }

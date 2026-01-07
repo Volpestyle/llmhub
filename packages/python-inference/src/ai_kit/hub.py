@@ -13,10 +13,16 @@ from .types import (
     GenerateOutput,
     ImageGenerateInput,
     ImageGenerateOutput,
+    LipsyncGenerateInput,
+    LipsyncGenerateOutput,
     MeshGenerateInput,
     MeshGenerateOutput,
     SpeechGenerateInput,
     SpeechGenerateOutput,
+    VideoGenerateInput,
+    VideoGenerateOutput,
+    VoiceAgentInput,
+    VoiceAgentOutput,
     TranscribeInput,
     TranscribeOutput,
     Provider,
@@ -36,6 +42,8 @@ from .providers import (
     BedrockConfig,
     ReplicateAdapter,
     ReplicateConfig,
+    FalAdapter,
+    FalConfig,
 )
 
 
@@ -189,6 +197,43 @@ class Kit:
             self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
             raise kit_err
 
+    def generate_lipsync(self, input: LipsyncGenerateInput) -> LipsyncGenerateOutput:
+        entitlement = self._entitlement_for_provider(input.provider)
+        if entitlement:
+            return self.generate_lipsync_with_context(entitlement, input)
+        adapter = self._require_adapter(input.provider)
+        if not hasattr(adapter, "generate_lipsync"):
+            raise AiKitError(
+                KitErrorPayload(
+                    kind=ErrorKind.UNSUPPORTED,
+                    message=f"Provider {input.provider} does not support lipsync generation",
+                )
+            )
+        try:
+            return adapter.generate_lipsync(input)
+        except Exception as err:
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(None, input.provider, input.model, kit_err)
+            raise kit_err
+
+    def generate_lipsync_with_context(
+        self, entitlement: EntitlementContext | None, input: LipsyncGenerateInput
+    ) -> LipsyncGenerateOutput:
+        adapter = self._require_adapter(input.provider, entitlement)
+        if not hasattr(adapter, "generate_lipsync"):
+            raise AiKitError(
+                KitErrorPayload(
+                    kind=ErrorKind.UNSUPPORTED,
+                    message=f"Provider {input.provider} does not support lipsync generation",
+                )
+            )
+        try:
+            return adapter.generate_lipsync(input)
+        except Exception as err:
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
+            raise kit_err
+
     def generate_speech(self, input: SpeechGenerateInput) -> SpeechGenerateOutput:
         entitlement = self._entitlement_for_provider(input.provider)
         if entitlement:
@@ -208,6 +253,44 @@ class Kit:
             self._registry.learn_model_unavailable(None, input.provider, input.model, kit_err)
             raise kit_err
 
+    def generate_video(self, input: VideoGenerateInput) -> VideoGenerateOutput:
+        entitlement = self._entitlement_for_provider(input.provider)
+        if entitlement:
+            return self.generate_video_with_context(entitlement, input)
+        adapter = self._require_adapter(input.provider)
+        if not hasattr(adapter, "generate_video"):
+            raise AiKitError(
+                KitErrorPayload(
+                    kind=ErrorKind.UNSUPPORTED,
+                    message=f"Provider {input.provider} does not support video generation",
+                )
+            )
+        try:
+            return adapter.generate_video(input)
+        except Exception as err:
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(None, input.provider, input.model, kit_err)
+            raise kit_err
+
+    def generate_voice_agent(self, input: VoiceAgentInput) -> VoiceAgentOutput:
+        entitlement = self._entitlement_for_provider(input.provider)
+        if entitlement:
+            return self.generate_voice_agent_with_context(entitlement, input)
+        adapter = self._require_adapter(input.provider)
+        if not hasattr(adapter, "generate_voice_agent"):
+            raise AiKitError(
+                KitErrorPayload(
+                    kind=ErrorKind.UNSUPPORTED,
+                    message=f"Provider {input.provider} does not support voice agent generation",
+                )
+            )
+        try:
+            return adapter.generate_voice_agent(input)
+        except Exception as err:
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(None, input.provider, input.model, kit_err)
+            raise kit_err
+
     def generate_speech_with_context(
         self, entitlement: EntitlementContext | None, input: SpeechGenerateInput
     ) -> SpeechGenerateOutput:
@@ -221,6 +304,42 @@ class Kit:
             )
         try:
             return adapter.generate_speech(input)
+        except Exception as err:
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
+            raise kit_err
+
+    def generate_video_with_context(
+        self, entitlement: EntitlementContext | None, input: VideoGenerateInput
+    ) -> VideoGenerateOutput:
+        adapter = self._require_adapter(input.provider, entitlement)
+        if not hasattr(adapter, "generate_video"):
+            raise AiKitError(
+                KitErrorPayload(
+                    kind=ErrorKind.UNSUPPORTED,
+                    message=f"Provider {input.provider} does not support video generation",
+                )
+            )
+        try:
+            return adapter.generate_video(input)
+        except Exception as err:
+            kit_err = to_kit_error(err)
+            self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
+            raise kit_err
+
+    def generate_voice_agent_with_context(
+        self, entitlement: EntitlementContext | None, input: VoiceAgentInput
+    ) -> VoiceAgentOutput:
+        adapter = self._require_adapter(input.provider, entitlement)
+        if not hasattr(adapter, "generate_voice_agent"):
+            raise AiKitError(
+                KitErrorPayload(
+                    kind=ErrorKind.UNSUPPORTED,
+                    message=f"Provider {input.provider} does not support voice agent generation",
+                )
+            )
+        try:
+            return adapter.generate_voice_agent(input)
         except Exception as err:
             kit_err = to_kit_error(err)
             self._registry.learn_model_unavailable(entitlement, input.provider, input.model, kit_err)
@@ -294,6 +413,8 @@ class Kit:
             adapters["ollama"] = OllamaAdapter(providers["ollama"])
         if "replicate" in providers:
             adapters["replicate"] = ReplicateAdapter(providers["replicate"])
+        if "fal" in providers:
+            adapters["fal"] = FalAdapter(providers["fal"])
         return adapters
 
     def _prepare_providers(self, providers: Dict[Provider, object]):
@@ -425,6 +546,13 @@ class Kit:
                 api_keys=getattr(base_config, "api_keys", None),
             )
             return ReplicateAdapter(config)
+        if provider == "fal":
+            config = FalConfig(
+                api_key=entitlement.apiKey,
+                api_keys=getattr(base_config, "api_keys", None),
+                timeout_s=getattr(base_config, "timeout_s", None),
+            )
+            return FalAdapter(config)
         return None
 
     def _require_adapter(self, provider: Provider, entitlement: EntitlementContext | None = None):

@@ -135,6 +135,26 @@ func (a *anthropicAdapter) GenerateSpeech(ctx context.Context, in SpeechGenerate
 	}
 }
 
+func (a *anthropicAdapter) GenerateVideo(ctx context.Context, in VideoGenerateInput) (VideoGenerateOutput, error) {
+	_ = ctx
+	_ = in
+	return VideoGenerateOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Anthropic video generation is not supported",
+		Provider: a.provider,
+	}
+}
+
+func (a *anthropicAdapter) GenerateVoiceAgent(ctx context.Context, in VoiceAgentInput) (VoiceAgentOutput, error) {
+	_ = ctx
+	_ = in
+	return VoiceAgentOutput{}, &KitError{
+		Kind:     ErrorUnsupported,
+		Message:  "Anthropic voice agent is not supported",
+		Provider: a.provider,
+	}
+}
+
 func (a *anthropicAdapter) Transcribe(ctx context.Context, in TranscribeInput) (TranscribeOutput, error) {
 	return TranscribeOutput{}, &KitError{
 		Kind:     ErrorUnsupported,
