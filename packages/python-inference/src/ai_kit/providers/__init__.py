@@ -4,6 +4,7 @@ from .gemini import GeminiAdapter, GeminiConfig
 from .xai import XAIAdapter, XAIConfig
 from .ollama import OllamaAdapter, OllamaConfig
 from .bedrock import BedrockAdapter, BedrockConfig
+from .replicate import ReplicateAdapter, ReplicateConfig
 
 __all__ = [
     "OpenAIAdapter",
@@ -18,4 +19,6 @@ __all__ = [
     "OllamaConfig",
     "BedrockAdapter",
     "BedrockConfig",
+    "ReplicateAdapter",
+    "ReplicateConfig",
 ]

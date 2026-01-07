@@ -34,6 +34,8 @@ from .providers import (
     OllamaConfig,
     BedrockAdapter,
     BedrockConfig,
+    ReplicateAdapter,
+    ReplicateConfig,
 )
 
 
@@ -290,6 +292,8 @@ class Kit:
             adapters["bedrock"] = BedrockAdapter(providers["bedrock"])
         if "ollama" in providers:
             adapters["ollama"] = OllamaAdapter(providers["ollama"])
+        if "replicate" in providers:
+            adapters["replicate"] = ReplicateAdapter(providers["replicate"])
         return adapters
 
     def _prepare_providers(self, providers: Dict[Provider, object]):
@@ -415,6 +419,12 @@ class Kit:
                 timeout=getattr(base_config, "timeout", None),
             )
             return OllamaAdapter(config)
+        if provider == "replicate":
+            config = ReplicateConfig(
+                api_key=entitlement.apiKey,
+                api_keys=getattr(base_config, "api_keys", None),
+            )
+            return ReplicateAdapter(config)
         return None
 
     def _require_adapter(self, provider: Provider, entitlement: EntitlementContext | None = None):
