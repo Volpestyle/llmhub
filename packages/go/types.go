@@ -16,6 +16,8 @@ type ModelCapabilities struct {
 	Text             bool `json:"text"`
 	Vision           bool `json:"vision"`
 	Image            bool `json:"image,omitempty"`
+	Video            bool `json:"video,omitempty"`
+	VideoIn          bool `json:"video_in,omitempty"`
 	ToolUse          bool `json:"tool_use"`
 	StructuredOutput bool `json:"structured_output"`
 	Reasoning        bool `json:"reasoning"`
@@ -36,6 +38,7 @@ type ModelMetadata struct {
 	Capabilities  ModelCapabilities `json:"capabilities"`
 	ContextWindow int               `json:"contextWindow,omitempty"`
 	TokenPrices   *TokenPrices      `json:"tokenPrices,omitempty"`
+	VideoPrices   map[string]float64 `json:"videoPrices,omitempty"`
 	Deprecated    bool              `json:"deprecated,omitempty"`
 	InPreview     bool              `json:"inPreview,omitempty"`
 	Available     bool              `json:"available,omitempty"`
@@ -58,6 +61,8 @@ type ModelModalities struct {
 	AudioIn  bool `json:"audioIn,omitempty"`
 	AudioOut bool `json:"audioOut,omitempty"`
 	ImageOut bool `json:"imageOut,omitempty"`
+	VideoIn  bool `json:"videoIn,omitempty"`
+	VideoOut bool `json:"videoOut,omitempty"`
 }
 
 type ModelFeatures struct {

@@ -145,13 +145,21 @@ components:
             text: { type: boolean }
             vision: { type: boolean }
             image: { type: boolean }
+            video: { type: boolean }
+            video_in: { type: boolean }
             tool_use: { type: boolean }
             structured_output: { type: boolean }
             reasoning: { type: boolean }
+            audio_in: { type: boolean }
+            audio_out: { type: boolean }
         contextWindow:
           type: integer
         tokenPrices:
           $ref: '#/components/schemas/TokenPrices'
+        videoPrices:
+          type: object
+          additionalProperties:
+            type: number
         deprecated:
           type: boolean
         inPreview:

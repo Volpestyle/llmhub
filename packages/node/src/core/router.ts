@@ -38,6 +38,9 @@ function filterModels(
     if (constraints.requireVision && !model.modalities.vision) {
       return false;
     }
+    if (constraints.requireVideo && !model.modalities.videoOut) {
+      return false;
+    }
     if (!allowPreview && model.tags?.includes("preview")) {
       return false;
     }

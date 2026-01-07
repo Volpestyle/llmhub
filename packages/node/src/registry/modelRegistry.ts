@@ -233,6 +233,8 @@ export class ModelRegistry {
       audioIn: model.capabilities.audio_in,
       audioOut: model.capabilities.audio_out,
       imageOut: model.capabilities.image,
+      videoIn: model.capabilities.video_in,
+      videoOut: model.capabilities.video,
     };
     const features: ModelFeatures = {
       tools: model.capabilities.tool_use,

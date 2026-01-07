@@ -100,10 +100,12 @@
     "capabilities": {
       "text": true,
       "vision": true,
-      "image": true,
+      "image": false,
+      "video": true,
       "tool_use": false,
       "structured_output": false,
-      "reasoning": false
+      "reasoning": false,
+      "audio_out": true
     },
     "inputs": [
       {
@@ -160,9 +162,12 @@
       "text": false,
       "vision": false,
       "image": false,
+      "video": true,
+      "video_in": true,
       "tool_use": false,
       "structured_output": false,
-      "reasoning": false
+      "reasoning": false,
+      "audio_in": true
     },
     "inputs": [
       {

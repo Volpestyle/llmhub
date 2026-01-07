@@ -218,6 +218,8 @@ class ModelRegistry:
             audioIn=getattr(model.capabilities, "audio_in", None),
             audioOut=getattr(model.capabilities, "audio_out", None),
             imageOut=getattr(model.capabilities, "image", None),
+            videoIn=getattr(model.capabilities, "video_in", None),
+            videoOut=getattr(model.capabilities, "video", None),
         )
         features = ModelFeatures(
             tools=model.capabilities.tool_use,

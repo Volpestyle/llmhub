@@ -22,6 +22,12 @@ def _local_models_root() -> Path:
     return Path(__file__).with_name("models")
 
 
+def _optional_bool(caps: Dict[str, Any], key: str) -> Optional[bool]:
+    if key not in caps:
+        return None
+    return bool(caps.get(key))
+
+
 def _parse_capabilities(raw: Any) -> ModelCapabilities:
     caps = raw if isinstance(raw, dict) else {}
     return ModelCapabilities(
@@ -31,6 +37,10 @@ def _parse_capabilities(raw: Any) -> ModelCapabilities:
         tool_use=bool(caps.get("tool_use")),
         structured_output=bool(caps.get("structured_output")),
         reasoning=bool(caps.get("reasoning")),
+        audio_in=_optional_bool(caps, "audio_in"),
+        audio_out=_optional_bool(caps, "audio_out"),
+        video=_optional_bool(caps, "video"),
+        video_in=_optional_bool(caps, "video_in"),
     )
 
 
@@ -65,6 +75,9 @@ def _load_models_file(path: Path, provider_override: Optional[str] = None) -> Li
             continue
         capabilities = _parse_capabilities(entry.get("capabilities"))
         token_prices = _parse_token_prices(entry.get("tokenPrices"))
+        video_prices = entry.get("videoPrices")
+        if not isinstance(video_prices, dict):
+            video_prices = None
         inputs = _parse_inputs(entry.get("inputs"))
         models.append(
             ModelMetadata(
@@ -77,6 +90,7 @@ def _load_models_file(path: Path, provider_override: Optional[str] = None) -> Li
                 if isinstance(entry.get("contextWindow"), int)
                 else None,
                 tokenPrices=token_prices,
+                videoPrices=video_prices,
                 deprecated=entry.get("deprecated") if "deprecated" in entry else None,
                 inPreview=entry.get("inPreview") if "inPreview" in entry else None,
                 inputs=inputs,

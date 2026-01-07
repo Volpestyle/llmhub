@@ -10,6 +10,7 @@ type ModelConstraints struct {
 	RequireTools  bool    `json:"requireTools,omitempty"`
 	RequireJSON   bool    `json:"requireJson,omitempty"`
 	RequireVision bool    `json:"requireVision,omitempty"`
+	RequireVideo  bool    `json:"requireVideo,omitempty"`
 	MaxCostUSD    float64 `json:"maxCostUsd,omitempty"`
 	LatencyClass  string  `json:"latencyClass,omitempty"`
 	AllowPreview  *bool   `json:"allowPreview,omitempty"`
@@ -58,6 +59,9 @@ func filterModels(models []ModelRecord, req ModelResolutionRequest) []ModelRecor
 			continue
 		}
 		if req.Constraints.RequireVision && !model.Modalities.Vision {
+			continue
+		}
+		if req.Constraints.RequireVideo && !model.Modalities.VideoOut {
 			continue
 		}
 		if !allowPreview && hasTag(model.Tags, "preview") {

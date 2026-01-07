@@ -18,6 +18,7 @@ type curatedModel struct {
 	Capabilities  ModelCapabilities `json:"capabilities"`
 	ContextWindow int               `json:"contextWindow"`
 	TokenPrices   *TokenPrices      `json:"tokenPrices"`
+	VideoPrices   map[string]float64 `json:"videoPrices,omitempty"`
 	Deprecated    bool              `json:"deprecated"`
 	InPreview     bool              `json:"inPreview"`
 }
@@ -117,6 +118,9 @@ func applyCuratedMetadata(model ModelMetadata) ModelMetadata {
 	}
 	if curated.TokenPrices != nil {
 		model.TokenPrices = curated.TokenPrices
+	}
+	if curated.VideoPrices != nil {
+		model.VideoPrices = curated.VideoPrices
 	}
 	model.Deprecated = curated.Deprecated
 	model.InPreview = curated.InPreview

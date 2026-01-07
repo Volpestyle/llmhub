@@ -99,6 +99,8 @@ def apply_curated_metadata(model: ModelMetadata) -> ModelMetadata:
             reasoning=bool(curated_caps.get("reasoning", capabilities.reasoning)),
             audio_in=bool(curated_caps.get("audio_in", getattr(capabilities, "audio_in", False))),
             audio_out=bool(curated_caps.get("audio_out", getattr(capabilities, "audio_out", False))),
+            video=bool(curated_caps.get("video", getattr(capabilities, "video", False))),
+            video_in=bool(curated_caps.get("video_in", getattr(capabilities, "video_in", False))),
         )
     token_prices = model.tokenPrices
     curated_prices = curated.get("tokenPrices")
@@ -107,6 +109,9 @@ def apply_curated_metadata(model: ModelMetadata) -> ModelMetadata:
             input=curated_prices.get("input", token_prices.input if token_prices else None),
             output=curated_prices.get("output", token_prices.output if token_prices else None),
         )
+    video_prices = curated.get("videoPrices")
+    if not isinstance(video_prices, dict):
+        video_prices = model.videoPrices
     context_window = curated.get("contextWindow")
     if not isinstance(context_window, int):
         context_window = model.contextWindow
@@ -117,6 +122,7 @@ def apply_curated_metadata(model: ModelMetadata) -> ModelMetadata:
         capabilities=capabilities,
         contextWindow=context_window,
         tokenPrices=token_prices,
+        videoPrices=video_prices,
         deprecated=bool(curated.get("deprecated", model.deprecated)),
         inPreview=bool(curated.get("inPreview", model.inPreview)),
     )

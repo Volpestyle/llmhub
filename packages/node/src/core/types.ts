@@ -16,6 +16,8 @@ export interface ModelCapabilities {
   text: boolean;
   vision: boolean;
   image?: boolean;
+  video?: boolean;
+  video_in?: boolean;
   tool_use: boolean;
   structured_output: boolean;
   reasoning: boolean;
@@ -36,6 +38,7 @@ export interface ModelMetadata {
   capabilities: ModelCapabilities;
   contextWindow?: number;
   tokenPrices?: TokenPrices;
+  videoPrices?: Record<string, number>;
   deprecated?: boolean;
   inPreview?: boolean;
 }
@@ -57,6 +60,8 @@ export interface ModelModalities {
   audioIn?: boolean;
   audioOut?: boolean;
   imageOut?: boolean;
+  videoIn?: boolean;
+  videoOut?: boolean;
 }
 
 export interface ModelFeatures {
@@ -108,6 +113,7 @@ export interface ModelConstraints {
   requireTools?: boolean;
   requireJson?: boolean;
   requireVision?: boolean;
+  requireVideo?: boolean;
   maxCostUsd?: number;
   latencyClass?: "fast" | "balanced" | "best";
   allowPreview?: boolean;

@@ -19,6 +19,7 @@ interface CuratedModel {
   capabilities?: ModelCapabilities;
   contextWindow?: number;
   tokenPrices?: TokenPrices;
+  videoPrices?: Record<string, number>;
   deprecated?: boolean;
   inPreview?: boolean;
 }
@@ -109,6 +110,7 @@ export function applyCuratedMetadata(model: ModelMetadata): ModelMetadata {
     capabilities: curated.capabilities ?? model.capabilities,
     contextWindow: curated.contextWindow ?? model.contextWindow,
     tokenPrices: curated.tokenPrices ?? model.tokenPrices,
+    videoPrices: curated.videoPrices ?? model.videoPrices,
     deprecated: curated.deprecated ?? model.deprecated,
     inPreview: curated.inPreview ?? model.inPreview,
   };

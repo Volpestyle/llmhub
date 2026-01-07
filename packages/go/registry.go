@@ -260,6 +260,8 @@ func (r *modelRegistry) modelRecordFromMetadata(model ModelMetadata, provider Pr
 		AudioIn: model.Capabilities.AudioIn,
 		AudioOut: model.Capabilities.AudioOut,
 		ImageOut: model.Capabilities.Image,
+		VideoIn: model.Capabilities.VideoIn,
+		VideoOut: model.Capabilities.Video,
 	}
 	features := ModelFeatures{
 		Tools:      model.Capabilities.ToolUse,

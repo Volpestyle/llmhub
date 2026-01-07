@@ -33,6 +33,8 @@ def _filter_models(models: List[ModelRecord], request: ModelResolutionRequest) -
                 return False
             if constraints.requireVision and not model.modalities.vision:
                 return False
+            if constraints.requireVideo and not getattr(model.modalities, "videoOut", None):
+                return False
             if constraints.maxCostUsd and not _within_cost(model, constraints.maxCostUsd):
                 return False
         if allow_preview is False and model.tags and "preview" in model.tags:

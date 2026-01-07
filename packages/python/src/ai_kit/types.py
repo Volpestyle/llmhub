@@ -17,6 +17,8 @@ class ModelCapabilities:
     reasoning: bool
     audio_in: Optional[bool] = None
     audio_out: Optional[bool] = None
+    video: Optional[bool] = None
+    video_in: Optional[bool] = None
 
 
 @dataclass
@@ -34,6 +36,7 @@ class ModelMetadata:
     family: Optional[str] = None
     contextWindow: Optional[int] = None
     tokenPrices: Optional[TokenPrices] = None
+    videoPrices: Optional[Dict[str, float]] = None
     deprecated: Optional[bool] = None
     inPreview: Optional[bool] = None
     inputs: Optional[List[Dict[str, Any]]] = None
@@ -58,6 +61,8 @@ class ModelModalities:
     audioIn: Optional[bool] = None
     audioOut: Optional[bool] = None
     imageOut: Optional[bool] = None
+    videoIn: Optional[bool] = None
+    videoOut: Optional[bool] = None
 
 
 @dataclass
@@ -113,6 +118,7 @@ class ModelConstraints:
     requireTools: Optional[bool] = None
     requireJson: Optional[bool] = None
     requireVision: Optional[bool] = None
+    requireVideo: Optional[bool] = None
     maxCostUsd: Optional[float] = None
     latencyClass: Optional[str] = None
     allowPreview: Optional[bool] = None
