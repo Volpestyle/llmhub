@@ -862,6 +862,8 @@ When you define custom function tools, the voice agent will call these functions
 3. **Send result back to agent** → sends `conversation.item.create` with the function output
 4. **Request continuation** → sends `response.create` to let the agent continue
 
+**Note:** After a tool call, the server can emit `response.done` for the tool-call turn before the follow-up assistant response. Keep listening after `function_call_output` + `response.create` for a new `response.created` and `response.output_audio.delta` events; do not treat the first `response.done` as the end of the full exchange.
+
 ### Complete Example
 
 ```pythonWithoutSDK
@@ -1302,5 +1304,4 @@ The client does not need to send messages to get these audio and transcription r
       "item_id": "msg_008",
   }
   ```
-
 

@@ -140,6 +140,8 @@ class XAIAdapter(OpenAIAdapter):
         audio_chunks: List[bytes] = []
         transcript_parts: List[str] = []
         tool_calls: List[ToolCall] = []
+        # Tool-call turns can emit response.done before the follow-up response with audio.
+        pending_tool_response = False
         session_sent = False
         response_sent = False
         timeout = self.config.timeout
@@ -151,6 +153,10 @@ class XAIAdapter(OpenAIAdapter):
             "yes",
             "on",
         }
+        def _debug_event(event_type: Optional[str]) -> None:
+            if not debug_events:
+                return
+            print(f"xai.realtime event={event_type or 'unknown'}", flush=True)
         try:
             ws = create_connection(
                 url,
@@ -162,8 +168,7 @@ class XAIAdapter(OpenAIAdapter):
                 raw = ws.recv()
                 event = json.loads(raw)
                 event_type = event.get("type")
-                if debug_events:
-                    logger.info("xai.realtime event=%s", event_type or "unknown")
+                _debug_event(event_type if isinstance(event_type, str) else None)
                 if event_type == "conversation.created" and not session_sent:
                     session_sent = True
                     ws.send(json.dumps({"type": "session.update", "session": session}))
@@ -199,6 +204,7 @@ class XAIAdapter(OpenAIAdapter):
                         except Exception as exc:
                             output = {"ok": False, "error": str(exc)}
                     output_json = output if isinstance(output, str) else json.dumps(output)
+                    pending_tool_response = True
                     ws.send(
                         json.dumps(
                             {
@@ -211,8 +217,10 @@ class XAIAdapter(OpenAIAdapter):
                             }
                         )
                     )
-                    ws.send(json.dumps({"type": "response.create", "response": response}))
+                    ws.send(json.dumps({"type": "response.create"}))
                     continue
+                if event_type == "response.created" and pending_tool_response:
+                    pending_tool_response = False
                 if event_type == "response.output_audio_transcript.delta":
                     delta = event.get("delta")
                     if isinstance(delta, str):
@@ -224,6 +232,8 @@ class XAIAdapter(OpenAIAdapter):
                         audio_chunks.append(base64.b64decode(delta))
                     continue
                 if event_type in ("response.output_audio.done", "response.done"):
+                    if pending_tool_response:
+                        continue
                     audio = None
                     if audio_chunks:
                         payload = b"".join(audio_chunks)
