@@ -8,6 +8,7 @@ export enum Provider {
   Bedrock = "bedrock",
   Ollama = "ollama",
   Local = "local",
+  Replicate = "replicate",
 }
 
 export type ProviderMap<T> = Partial<Record<Provider, T>>;
@@ -371,6 +372,26 @@ export interface SpeechGenerateOutput {
   raw?: unknown;
 }
 
+export interface VideoGenerateInput {
+  provider: Provider;
+  model: string;
+  prompt: string;
+  startImage?: string;
+  inputImages?: ImageInput[];
+  duration?: number;
+  aspectRatio?: string;
+  negativePrompt?: string;
+  generateAudio?: boolean;
+  parameters?: Record<string, unknown>;
+}
+
+export interface VideoGenerateOutput {
+  mime: string;
+  data: string;
+  duration?: number;
+  raw?: unknown;
+}
+
 export type StreamChunk =
   | { type: "delta"; textDelta: string }
   | { type: "tool_call"; call: ToolCall; delta?: string }
@@ -485,6 +506,10 @@ export interface BedrockProviderConfig {
   runtimeService?: string;
 }
 
+export interface ReplicateProviderConfig {
+  apiKey?: string;
+}
+
 export type ProviderConfigs = {
   [Provider.OpenAI]: OpenAIProviderConfig;
   [Provider.Anthropic]: AnthropicProviderConfig;
@@ -492,6 +517,7 @@ export type ProviderConfigs = {
   [Provider.Google]: GoogleProviderConfig;
   [Provider.Bedrock]: BedrockProviderConfig;
   [Provider.Ollama]: OllamaProviderConfig;
+  [Provider.Replicate]: ReplicateProviderConfig;
 };
 
 export type AnyProviderConfig =
@@ -523,6 +549,7 @@ export interface Kit {
   generateImage(input: ImageGenerateInput): Promise<ImageGenerateOutput>;
   generateMesh(input: MeshGenerateInput): Promise<MeshGenerateOutput>;
   generateSpeech(input: SpeechGenerateInput): Promise<SpeechGenerateOutput>;
+  generateVideo(input: VideoGenerateInput): Promise<VideoGenerateOutput>;
   transcribe(input: TranscribeInput): Promise<TranscribeOutput>;
   streamGenerate(input: GenerateInput): AsyncIterable<StreamChunk>;
   streamGenerateWithContext(

@@ -12,6 +12,8 @@ import {
   SpeechGenerateOutput,
   TranscribeInput,
   TranscribeOutput,
+  VideoGenerateInput,
+  VideoGenerateOutput,
   StreamChunk,
 } from "./types.js";
 
@@ -23,6 +25,7 @@ export interface ProviderAdapter {
   generateImage?(input: ImageGenerateInput): Promise<ImageGenerateOutput>;
   generateMesh?(input: MeshGenerateInput): Promise<MeshGenerateOutput>;
   generateSpeech?(input: SpeechGenerateInput): Promise<SpeechGenerateOutput>;
+  generateVideo?(input: VideoGenerateInput): Promise<VideoGenerateOutput>;
   transcribe?(input: TranscribeInput): Promise<TranscribeOutput>;
 }
 

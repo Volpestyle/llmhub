@@ -13,6 +13,8 @@ export type {
   SpeechGenerateInput,
   SpeechGenerateOutput,
   SpeechResponseFormat,
+  VideoGenerateInput,
+  VideoGenerateOutput,
   TranscribeInput,
   TranscribeOutput,
   TranscriptSegment,
@@ -33,6 +35,8 @@ export type {
   Message,
   ContentPart,
   ResponseFormat,
+  ReplicateProviderConfig,
 } from "./core/types.js";
 export { Provider } from "./core/types.js";
 export { AiKitError } from "./core/errors.js";
+export { ReplicateAdapter } from "./adapters/replicate.js";

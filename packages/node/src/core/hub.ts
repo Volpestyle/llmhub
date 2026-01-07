@@ -5,6 +5,7 @@ import { XAIAdapter } from "../adapters/xai.js";
 import { GoogleAdapter } from "../adapters/gemini.js";
 import { OllamaAdapter } from "../adapters/ollama.js";
 import { BedrockAdapter } from "../adapters/bedrock.js";
+import { ReplicateAdapter } from "../adapters/replicate.js";
 import { AdapterMap, ProviderAdapter } from "./provider.js";
 import { fingerprintApiKey } from "./entitlements.js";
 import {
@@ -21,12 +22,15 @@ import {
   ModelRecord,
   SpeechGenerateInput,
   SpeechGenerateOutput,
+  VideoGenerateInput,
+  VideoGenerateOutput,
   OpenAIProviderConfig,
   AnthropicProviderConfig,
   XAIProviderConfig,
   GoogleProviderConfig,
   BedrockProviderConfig,
   OllamaProviderConfig,
+  ReplicateProviderConfig,
   Provider,
   StreamChunk,
   TranscribeInput,
@@ -189,6 +193,30 @@ class DefaultKit implements Kit {
     }
   }
 
+  async generateVideo(
+    input: VideoGenerateInput,
+  ): Promise<VideoGenerateOutput> {
+    const entitlement = this.entitlementForProvider(input.provider);
+    if (entitlement) {
+      return this.generateVideoWithContext(entitlement, input);
+    }
+    const adapter = this.requireAdapter(input.provider);
+    if (!adapter.generateVideo) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support video generation`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.generateVideo(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(undefined, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
   async transcribe(input: TranscribeInput): Promise<TranscribeOutput> {
     const entitlement = this.entitlementForProvider(input.provider);
     if (entitlement) {
@@ -286,6 +314,27 @@ class DefaultKit implements Kit {
     }
     try {
       return await adapter.generateSpeech(input);
+    } catch (err) {
+      const kitErr = toKitError(err);
+      this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);
+      throw kitErr;
+    }
+  }
+
+  private async generateVideoWithContext(
+    entitlement: EntitlementContext | undefined,
+    input: VideoGenerateInput,
+  ): Promise<VideoGenerateOutput> {
+    const adapter = this.requireAdapter(input.provider, entitlement);
+    if (!adapter.generateVideo) {
+      throw new AiKitError({
+        kind: ErrorKind.Unsupported,
+        message: `Provider ${input.provider} does not support video generation`,
+        provider: input.provider,
+      });
+    }
+    try {
+      return await adapter.generateVideo(input);
     } catch (err) {
       const kitErr = toKitError(err);
       this.registry.learnModelUnavailable(entitlement, input.provider, input.model, kitErr);
@@ -457,6 +506,17 @@ export function createKit(config: KitConfig): Kit {
       config.httpClient,
     );
   }
+  if (config.providers[Provider.Replicate] && !adapters[Provider.Replicate]) {
+    const providerConfig = config.providers[Provider.Replicate]! as ReplicateProviderConfig;
+    if (!providerConfig.apiKey) {
+      throw new AiKitError({
+        kind: ErrorKind.Validation,
+        message: "Replicate api key is required",
+      });
+    }
+    adapters[Provider.Replicate] = new ReplicateAdapter(providerConfig);
+    keyPools.set(Provider.Replicate, new KeyPool([providerConfig.apiKey]));
+  }
 
   const baseAdapterFactory = (
     provider: Provider,
@@ -512,6 +572,11 @@ export function createKit(config: KitConfig): Kit {
           baseConfig as BedrockProviderConfig,
           config.httpClient,
         );
+      case Provider.Replicate:
+        return new ReplicateAdapter({
+          ...baseConfig,
+          apiKey: entitlement.apiKey,
+        });
       default:
         throw new AiKitError({
           kind: ErrorKind.Validation,
