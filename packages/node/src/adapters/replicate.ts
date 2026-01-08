@@ -98,6 +98,26 @@ const LIPSYNC_MODELS: ModelMetadata[] = [
       per_request_usd: 0.072,
     },
   },
+  {
+    id: "pixverse/lipsync",
+    displayName: "PixVerse Lipsync",
+    provider: Provider.Replicate,
+    family: "lipsync",
+    capabilities: {
+      text: false,
+      vision: false,
+      image: false,
+      video: true,
+      video_in: true,
+      tool_use: false,
+      structured_output: false,
+      reasoning: false,
+      audio_in: true,
+    },
+    videoPrices: {
+      per_second_usd: 0.04,
+    },
+  },
 ];
 
 async function downloadAsBase64(url: string): Promise<string> {

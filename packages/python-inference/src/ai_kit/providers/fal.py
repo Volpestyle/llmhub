@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import mimetypes
 import os
 import tempfile
 from dataclasses import dataclass
@@ -9,7 +10,15 @@ from typing import Any, Dict, List, Optional
 
 from ..catalog import load_catalog_models
 from ..errors import ErrorKind, KitErrorPayload, AiKitError
-from ..types import LipsyncGenerateInput, LipsyncGenerateOutput, ModelCapabilities, ModelMetadata
+from ..types import (
+    ImageInput,
+    LipsyncGenerateInput,
+    LipsyncGenerateOutput,
+    ModelCapabilities,
+    ModelMetadata,
+    VideoGenerateInput,
+    VideoGenerateOutput,
+)
 from ..clients.fal_client import FalClient
 
 
@@ -63,6 +72,54 @@ class FalAdapter:
                 ),
             )
         ]
+
+    def generate_video(self, input: VideoGenerateInput) -> VideoGenerateOutput:
+        temp_paths: List[Path] = []
+        try:
+            image_url = _resolve_image_url(self._client, input.startImage, input.inputImages, temp_paths)
+            if not image_url:
+                raise AiKitError(
+                    KitErrorPayload(
+                        kind=ErrorKind.VALIDATION,
+                        message="Fal video generation requires an image input",
+                        provider="fal",
+                    )
+                )
+
+            payload: Dict[str, Any] = {"prompt": input.prompt, "image_url": image_url}
+            if input.duration is not None:
+                payload["duration"] = _format_duration(input.duration)
+            if input.negativePrompt:
+                payload["negative_prompt"] = input.negativePrompt
+            if input.generateAudio is not None:
+                payload["generate_audio"] = input.generateAudio
+            if input.parameters:
+                payload.update(input.parameters)
+
+            result = self._client.subscribe(input.model, arguments=payload)
+            video = result.get("video") if isinstance(result, dict) else None
+            out_url = video.get("url") if isinstance(video, dict) else None
+            if not out_url:
+                raise AiKitError(
+                    KitErrorPayload(
+                        kind=ErrorKind.UNKNOWN,
+                        message="Fal video response missing video url",
+                        provider="fal",
+                    )
+                )
+
+            data = self._client.download_url(out_url)
+            return VideoGenerateOutput(
+                mime="video/mp4",
+                data=base64.b64encode(data).decode("ascii"),
+                raw=result,
+            )
+        finally:
+            for path in temp_paths:
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
 
     def generate_lipsync(self, input: LipsyncGenerateInput) -> LipsyncGenerateOutput:
         video_url = input.videoUrl
@@ -126,6 +183,116 @@ class FalAdapter:
                     path.unlink()
                 except OSError:
                     pass
+
+
+def _resolve_image_url(
+    client: FalClient,
+    start_image: Optional[str],
+    input_images: Optional[List[Any]],
+    temp_paths: List[Path],
+) -> Optional[str]:
+    if start_image:
+        url = _coerce_image_entry(client, start_image, temp_paths)
+        if url:
+            return url
+    for entry in input_images or []:
+        url = _coerce_image_entry(client, entry, temp_paths)
+        if url:
+            return url
+    return None
+
+
+def _coerce_image_entry(
+    client: FalClient,
+    entry: Any,
+    temp_paths: List[Path],
+) -> Optional[str]:
+    image = _image_input_from_entry(entry)
+    if not image:
+        return None
+    if image.url:
+        return _coerce_image_url(client, image.url, image.mediaType, temp_paths)
+    if image.base64:
+        return _upload_base64_image(client, image.base64, image.mediaType, temp_paths)
+    return None
+
+
+def _image_input_from_entry(entry: Any) -> Optional[ImageInput]:
+    if isinstance(entry, ImageInput):
+        return entry
+    if isinstance(entry, dict):
+        return ImageInput(
+            url=entry.get("url"),
+            base64=entry.get("base64"),
+            mediaType=entry.get("mediaType"),
+        )
+    if isinstance(entry, str):
+        return ImageInput(url=entry)
+    return None
+
+
+def _coerce_image_url(
+    client: FalClient,
+    value: str,
+    media_type: Optional[str],
+    temp_paths: List[Path],
+) -> Optional[str]:
+    if value.startswith("data:"):
+        suffix = _guess_image_suffix(_data_url_media_type(value) or media_type)
+        temp_path = _write_temp_file(value, suffix)
+        temp_paths.append(temp_path)
+        return client.upload_file(temp_path)
+    if value.startswith("file://"):
+        path = Path(value[7:])
+        if path.exists():
+            return client.upload_file(path)
+        return None
+    if value.startswith("http://") or value.startswith("https://"):
+        return value
+    path = Path(value).expanduser()
+    if path.exists():
+        return client.upload_file(path)
+    return value
+
+
+def _upload_base64_image(
+    client: FalClient,
+    data: str,
+    media_type: Optional[str],
+    temp_paths: List[Path],
+) -> str:
+    suffix = _guess_image_suffix(media_type)
+    temp_path = _write_temp_file(data, suffix)
+    temp_paths.append(temp_path)
+    return client.upload_file(temp_path)
+
+
+def _guess_image_suffix(media_type: Optional[str]) -> str:
+    if not media_type:
+        return ".png"
+    suffix = mimetypes.guess_extension(media_type)
+    if suffix:
+        return suffix
+    if media_type == "image/jpg":
+        return ".jpg"
+    return ".png"
+
+
+def _data_url_media_type(value: str) -> Optional[str]:
+    if not value.startswith("data:"):
+        return None
+    header = value.split(",", 1)[0]
+    if ";" in header:
+        header = header.split(";", 1)[0]
+    return header[5:] if header.startswith("data:") else None
+
+
+def _format_duration(value: Any) -> str:
+    if isinstance(value, (int, float)):
+        if isinstance(value, float) and value.is_integer():
+            return str(int(value))
+        return str(value)
+    return str(value)
 
 
 def _write_temp_file(data: str, suffix: str) -> Path:
