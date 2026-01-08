@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import base64
-import mimetypes
 import os
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..catalog import load_catalog_models
 from ..errors import ErrorKind, KitErrorPayload, AiKitError
+from ..media import data_url_media_type, guess_extension, write_temp_file
 from ..types import (
     ImageInput,
     LipsyncGenerateInput,
@@ -76,6 +75,7 @@ class FalAdapter:
     def generate_video(self, input: VideoGenerateInput) -> VideoGenerateOutput:
         temp_paths: List[Path] = []
         try:
+            allowed_inputs, required_inputs = _model_input_names(input.model)
             image_url = _resolve_image_url(self._client, input.startImage, input.inputImages, temp_paths)
             if not image_url:
                 raise AiKitError(
@@ -86,15 +86,33 @@ class FalAdapter:
                     )
                 )
 
-            payload: Dict[str, Any] = {"prompt": input.prompt, "image_url": image_url}
-            if input.duration is not None:
+            audio_url = _resolve_audio_url(self._client, input.audioUrl, input.audioBase64, temp_paths)
+            if "audio_url" in required_inputs and not audio_url:
+                raise AiKitError(
+                    KitErrorPayload(
+                        kind=ErrorKind.VALIDATION,
+                        message="Fal video generation requires an audio input",
+                        provider="fal",
+                    )
+                )
+
+            payload: Dict[str, Any] = {}
+            if _allow_input("prompt", allowed_inputs):
+                payload["prompt"] = input.prompt
+            if _allow_input("image_url", allowed_inputs):
+                payload["image_url"] = image_url
+            if audio_url and _allow_input("audio_url", allowed_inputs):
+                payload["audio_url"] = audio_url
+            if input.duration is not None and _allow_input("duration", allowed_inputs):
                 payload["duration"] = _format_duration(input.duration)
-            if input.negativePrompt:
+            if input.negativePrompt and _allow_input("negative_prompt", allowed_inputs):
                 payload["negative_prompt"] = input.negativePrompt
-            if input.generateAudio is not None:
+            if input.generateAudio is not None and _allow_input("generate_audio", allowed_inputs):
                 payload["generate_audio"] = input.generateAudio
             if input.parameters:
-                payload.update(input.parameters)
+                for key, value in input.parameters.items():
+                    if _allow_input(key, allowed_inputs):
+                        payload[key] = value
 
             result = self._client.subscribe(input.model, arguments=payload)
             video = result.get("video") if isinstance(result, dict) else None
@@ -125,14 +143,15 @@ class FalAdapter:
         video_url = input.videoUrl
         video_tmp: List[Path] = []
         if not video_url and input.videoBase64:
-            temp_path = _write_temp_file(input.videoBase64, ".mp4")
+            temp_path = write_temp_file(input.videoBase64, ".mp4")
             video_tmp.append(temp_path)
             video_url = self._client.upload_file(temp_path)
 
         audio_url = input.audioUrl
         audio_tmp: List[Path] = []
         if not audio_url and input.audioBase64:
-            temp_path = _write_temp_file(input.audioBase64, ".wav")
+            suffix = guess_extension(data_url_media_type(input.audioBase64), default=".wav")
+            temp_path = write_temp_file(input.audioBase64, suffix)
             audio_tmp.append(temp_path)
             audio_url = self._client.upload_file(temp_path)
 
@@ -217,6 +236,22 @@ def _coerce_image_entry(
     return None
 
 
+def _resolve_audio_url(
+    client: FalClient,
+    audio_url: Optional[str],
+    audio_base64: Optional[str],
+    temp_paths: List[Path],
+) -> Optional[str]:
+    if audio_url:
+        return _coerce_audio_url(client, audio_url, temp_paths)
+    if audio_base64:
+        suffix = guess_extension(data_url_media_type(audio_base64), default=".wav")
+        temp_path = write_temp_file(audio_base64, suffix)
+        temp_paths.append(temp_path)
+        return client.upload_file(temp_path)
+    return None
+
+
 def _image_input_from_entry(entry: Any) -> Optional[ImageInput]:
     if isinstance(entry, ImageInput):
         return entry
@@ -238,8 +273,31 @@ def _coerce_image_url(
     temp_paths: List[Path],
 ) -> Optional[str]:
     if value.startswith("data:"):
-        suffix = _guess_image_suffix(_data_url_media_type(value) or media_type)
-        temp_path = _write_temp_file(value, suffix)
+        suffix = guess_extension(data_url_media_type(value) or media_type)
+        temp_path = write_temp_file(value, suffix)
+        temp_paths.append(temp_path)
+        return client.upload_file(temp_path)
+    if value.startswith("file://"):
+        path = Path(value[7:])
+        if path.exists():
+            return client.upload_file(path)
+        return None
+    if value.startswith("http://") or value.startswith("https://"):
+        return value
+    path = Path(value).expanduser()
+    if path.exists():
+        return client.upload_file(path)
+    return value
+
+
+def _coerce_audio_url(
+    client: FalClient,
+    value: str,
+    temp_paths: List[Path],
+) -> Optional[str]:
+    if value.startswith("data:"):
+        suffix = guess_extension(data_url_media_type(value), default=".wav")
+        temp_path = write_temp_file(value, suffix)
         temp_paths.append(temp_path)
         return client.upload_file(temp_path)
     if value.startswith("file://"):
@@ -261,30 +319,36 @@ def _upload_base64_image(
     media_type: Optional[str],
     temp_paths: List[Path],
 ) -> str:
-    suffix = _guess_image_suffix(media_type)
-    temp_path = _write_temp_file(data, suffix)
+    suffix = guess_extension(media_type)
+    temp_path = write_temp_file(data, suffix)
     temp_paths.append(temp_path)
     return client.upload_file(temp_path)
 
 
-def _guess_image_suffix(media_type: Optional[str]) -> str:
-    if not media_type:
-        return ".png"
-    suffix = mimetypes.guess_extension(media_type)
-    if suffix:
-        return suffix
-    if media_type == "image/jpg":
-        return ".jpg"
-    return ".png"
+def _allow_input(name: str, allowed: Optional[set[str]]) -> bool:
+    return not allowed or name in allowed
 
 
-def _data_url_media_type(value: str) -> Optional[str]:
-    if not value.startswith("data:"):
-        return None
-    header = value.split(",", 1)[0]
-    if ";" in header:
-        header = header.split(";", 1)[0]
-    return header[5:] if header.startswith("data:") else None
+def _model_input_names(model_id: str) -> tuple[Optional[set[str]], set[str]]:
+    for model in load_catalog_models():
+        if model.provider != "fal" or model.id != model_id:
+            continue
+        inputs = model.inputs
+        if not isinstance(inputs, list) or not inputs:
+            return None, set()
+        allowed: set[str] = set()
+        required: set[str] = set()
+        for entry in inputs:
+            if not isinstance(entry, dict):
+                continue
+            name = entry.get("name")
+            if not isinstance(name, str) or not name:
+                continue
+            allowed.add(name)
+            if entry.get("required") is True:
+                required.add(name)
+        return (allowed or None), required
+    return None, set()
 
 
 def _format_duration(value: Any) -> str:
@@ -293,21 +357,3 @@ def _format_duration(value: Any) -> str:
             return str(int(value))
         return str(value)
     return str(value)
-
-
-def _write_temp_file(data: str, suffix: str) -> Path:
-    raw = _decode_base64(data)
-    temp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    try:
-        temp.write(raw)
-        temp.flush()
-    finally:
-        temp.close()
-    return Path(temp.name)
-
-
-def _decode_base64(value: str) -> bytes:
-    if value.startswith("data:"):
-        payload = value.split(",", 1)[1]
-        return base64.b64decode(payload)
-    return base64.b64decode(value)

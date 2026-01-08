@@ -8,6 +8,7 @@ from typing import Any, List, Optional, Sequence
 
 from ..catalog import load_catalog_models
 from ..errors import ErrorKind, KitErrorPayload, AiKitError
+from ..media import decode_base64
 from ..types import (
     ImageGenerateInput,
     ImageGenerateOutput,
@@ -212,7 +213,7 @@ def _normalize_image_entry(entry: Any) -> Any:
         return _image_input_to_payload(ImageInput(**entry))
     if isinstance(entry, str):
         if entry.startswith("data:"):
-            return io.BytesIO(_decode_base64(entry))
+            return io.BytesIO(decode_base64(entry))
         return entry
     return entry
 
@@ -221,23 +222,16 @@ def _image_input_to_payload(entry: ImageInput) -> Any:
     if entry.url:
         return entry.url
     if entry.base64:
-        data = _decode_base64(entry.base64)
+        data = decode_base64(entry.base64)
         return io.BytesIO(data)
     return None
-
-
-def _decode_base64(value: str) -> bytes:
-    if value.startswith("data:"):
-        payload = value.split(",", 1)[1]
-        return base64.b64decode(payload)
-    return base64.b64decode(value)
 
 
 def _coerce_media_input(url: Optional[str], data: Optional[str]) -> Any:
     if url:
         return url
     if data:
-        return io.BytesIO(_decode_base64(data))
+        return io.BytesIO(decode_base64(data))
     return None
 
 

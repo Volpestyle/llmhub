@@ -290,6 +290,8 @@ class VideoGenerateInput:
     prompt: str
     startImage: Optional[str] = None
     inputImages: Optional[List[ImageInput]] = None
+    audioUrl: Optional[str] = None
+    audioBase64: Optional[str] = None
     duration: Optional[float] = None
     aspectRatio: Optional[str] = None
     negativePrompt: Optional[str] = None

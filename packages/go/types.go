@@ -249,6 +249,8 @@ type VideoGenerateInput struct {
 	Prompt         string                 `json:"prompt"`
 	StartImage     string                 `json:"startImage,omitempty"`
 	InputImages    []ImageInput           `json:"inputImages,omitempty"`
+	AudioUrl       string                 `json:"audioUrl,omitempty"`
+	AudioBase64    string                 `json:"audioBase64,omitempty"`
 	Duration       *float64               `json:"duration,omitempty"`
 	AspectRatio    string                 `json:"aspectRatio,omitempty"`
 	NegativePrompt string                 `json:"negativePrompt,omitempty"`

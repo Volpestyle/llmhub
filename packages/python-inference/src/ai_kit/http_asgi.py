@@ -382,6 +382,8 @@ def _normalize_video_input(payload: Any) -> VideoGenerateInput:
         prompt=prompt,
         startImage=payload.get("startImage"),
         inputImages=payload.get("inputImages"),
+        audioUrl=payload.get("audioUrl"),
+        audioBase64=payload.get("audioBase64"),
         duration=payload.get("duration"),
         aspectRatio=payload.get("aspectRatio"),
         negativePrompt=payload.get("negativePrompt"),

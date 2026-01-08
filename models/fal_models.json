@@ -153,6 +153,467 @@
     }
   },
   {
+    "id": "fal-ai/wan/v2.2-14b/speech-to-video",
+    "provider": "fal",
+    "displayName": "Wan-2.2 Speech-to-Video 14B",
+    "family": "i2v",
+    "description": "Generate videos from an image and audio with high-fidelity motion.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": false,
+      "video": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false,
+      "audio_in": true
+    },
+    "inputs": [
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "image_url",
+        "label": "Image URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "label": "Audio URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "label": "Negative prompt",
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      {
+        "name": "num_frames",
+        "label": "Frames",
+        "type": "number",
+        "required": false,
+        "default": 80,
+        "min": 40,
+        "max": 120,
+        "step": 4
+      },
+      {
+        "name": "frames_per_second",
+        "label": "FPS",
+        "type": "number",
+        "required": false,
+        "default": 16,
+        "min": 4,
+        "max": 60
+      },
+      {
+        "name": "resolution",
+        "label": "Resolution",
+        "type": "select",
+        "required": false,
+        "default": "480p",
+        "options": [
+          { "label": "480p", "value": "480p" },
+          { "label": "580p", "value": "580p" },
+          { "label": "720p", "value": "720p" }
+        ]
+      },
+      {
+        "name": "num_inference_steps",
+        "label": "Inference steps",
+        "type": "number",
+        "required": false,
+        "default": 27,
+        "min": 2,
+        "max": 40
+      },
+      {
+        "name": "guidance_scale",
+        "label": "Guidance scale",
+        "type": "number",
+        "required": false,
+        "default": 3.5,
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "shift",
+        "label": "Shift",
+        "type": "number",
+        "required": false,
+        "default": 5,
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "video_quality",
+        "label": "Video quality",
+        "type": "select",
+        "required": false,
+        "default": "high",
+        "options": [
+          { "label": "Low", "value": "low" },
+          { "label": "Medium", "value": "medium" },
+          { "label": "High", "value": "high" },
+          { "label": "Maximum", "value": "maximum" }
+        ]
+      },
+      {
+        "name": "video_write_mode",
+        "label": "Video write mode",
+        "type": "select",
+        "required": false,
+        "default": "balanced",
+        "options": [
+          { "label": "Fast", "value": "fast" },
+          { "label": "Balanced", "value": "balanced" },
+          { "label": "Small", "value": "small" }
+        ]
+      },
+      {
+        "name": "enable_safety_checker",
+        "label": "Enable safety checker",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      {
+        "name": "enable_output_safety_checker",
+        "label": "Enable output safety checker",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      {
+        "name": "seed",
+        "label": "Seed",
+        "type": "number",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "fal-ai/bytedance/omnihuman/v1.5",
+    "provider": "fal",
+    "displayName": "Bytedance OmniHuman v1.5",
+    "family": "i2v",
+    "description": "Generate talking-head video from an image and audio.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": false,
+      "video": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false,
+      "audio_in": true
+    },
+    "inputs": [
+      {
+        "name": "image_url",
+        "label": "Image URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "label": "Audio URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "turbo_mode",
+        "label": "Turbo mode",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      {
+        "name": "resolution",
+        "label": "Resolution",
+        "type": "select",
+        "required": false,
+        "default": "1080p",
+        "options": [
+          { "label": "720p", "value": "720p" },
+          { "label": "1080p", "value": "1080p" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fal-ai/infinitalk",
+    "provider": "fal",
+    "displayName": "Infinitalk",
+    "family": "i2v",
+    "description": "Talking avatar video from an image and audio.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": false,
+      "video": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false,
+      "audio_in": true
+    },
+    "inputs": [
+      {
+        "name": "image_url",
+        "label": "Image URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "label": "Audio URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "num_frames",
+        "label": "Frames",
+        "type": "number",
+        "required": false,
+        "default": 145,
+        "min": 41,
+        "max": 721
+      },
+      {
+        "name": "resolution",
+        "label": "Resolution",
+        "type": "select",
+        "required": false,
+        "default": "480p",
+        "options": [
+          { "label": "480p", "value": "480p" },
+          { "label": "720p", "value": "720p" }
+        ]
+      },
+      {
+        "name": "seed",
+        "label": "Seed",
+        "type": "number",
+        "required": false,
+        "default": 42
+      },
+      {
+        "name": "acceleration",
+        "label": "Acceleration",
+        "type": "select",
+        "required": false,
+        "default": "regular",
+        "options": [
+          { "label": "None", "value": "none" },
+          { "label": "Regular", "value": "regular" },
+          { "label": "High", "value": "high" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fal-ai/creatify/aurora",
+    "provider": "fal",
+    "displayName": "Creatify Aurora",
+    "family": "i2v",
+    "description": "Studio-quality avatar video from image and audio.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": false,
+      "video": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false,
+      "audio_in": true
+    },
+    "inputs": [
+      {
+        "name": "image_url",
+        "label": "Image URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "label": "Audio URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": false
+      },
+      {
+        "name": "guidance_scale",
+        "label": "Guidance scale",
+        "type": "number",
+        "required": false,
+        "default": 1,
+        "min": 0,
+        "max": 5
+      },
+      {
+        "name": "audio_guidance_scale",
+        "label": "Audio guidance scale",
+        "type": "number",
+        "required": false,
+        "default": 2,
+        "min": 0,
+        "max": 5
+      },
+      {
+        "name": "resolution",
+        "label": "Resolution",
+        "type": "select",
+        "required": false,
+        "default": "720p",
+        "options": [
+          { "label": "480p", "value": "480p" },
+          { "label": "720p", "value": "720p" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "veed/fabric-1.0",
+    "provider": "fal",
+    "displayName": "VEED Fabric 1.0",
+    "family": "i2v",
+    "description": "Talking video from an image and audio.",
+    "capabilities": {
+      "text": false,
+      "vision": true,
+      "image": false,
+      "video": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false,
+      "audio_in": true
+    },
+    "inputs": [
+      {
+        "name": "image_url",
+        "label": "Image URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "label": "Audio URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "label": "Resolution",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "label": "480p", "value": "480p" },
+          { "label": "720p", "value": "720p" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fal-ai/kling-video/ai-avatar/v2/standard",
+    "provider": "fal",
+    "displayName": "Kling AI Avatar v2 Standard",
+    "family": "i2v",
+    "description": "Avatar video generation with audio-driven motion.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": false,
+      "video": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false,
+      "audio_in": true
+    },
+    "inputs": [
+      {
+        "name": "image_url",
+        "label": "Image URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "label": "Audio URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": false,
+        "default": "."
+      }
+    ]
+  },
+  {
+    "id": "fal-ai/kling-video/ai-avatar/v2/pro",
+    "provider": "fal",
+    "displayName": "Kling AI Avatar v2 Pro",
+    "family": "i2v",
+    "description": "Premium avatar video generation with audio-driven motion.",
+    "capabilities": {
+      "text": true,
+      "vision": true,
+      "image": false,
+      "video": true,
+      "tool_use": false,
+      "structured_output": false,
+      "reasoning": false,
+      "audio_in": true
+    },
+    "inputs": [
+      {
+        "name": "image_url",
+        "label": "Image URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "label": "Audio URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "string",
+        "required": false,
+        "default": "."
+      }
+    ]
+  },
+  {
     "id": "fal-ai/sync-lipsync/v2/pro",
     "provider": "fal",
     "displayName": "Sync Lipsync v2 Pro",

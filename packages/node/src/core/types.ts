@@ -416,6 +416,8 @@ export interface VideoGenerateInput {
   prompt: string;
   startImage?: string;
   inputImages?: ImageInput[];
+  audioUrl?: string;
+  audioBase64?: string;
   duration?: number;
   aspectRatio?: string;
   negativePrompt?: string;
