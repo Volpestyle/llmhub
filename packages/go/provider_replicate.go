@@ -45,6 +45,7 @@ type replicateCatalogEntry struct {
 	Provider     Provider           `json:"provider"`
 	Family       string             `json:"family"`
 	Capabilities ModelCapabilities  `json:"capabilities"`
+	Inputs       []map[string]interface{} `json:"inputs"`
 	ContextWindow int               `json:"contextWindow"`
 	TokenPrices  *TokenPrices       `json:"tokenPrices"`
 	VideoPrices  map[string]float64 `json:"videoPrices"`
@@ -85,6 +86,7 @@ func loadReplicateCatalog() []ModelMetadata {
 				Provider:      provider,
 				Family:        entry.Family,
 				Capabilities:  entry.Capabilities,
+				Inputs:        entry.Inputs,
 				ContextWindow: entry.ContextWindow,
 				TokenPrices:   entry.TokenPrices,
 				VideoPrices:   entry.VideoPrices,

@@ -19,7 +19,10 @@ const (
 	xaiSpeechModeKey     = "xai:speech-mode"
 	xaiDefaultVoice      = "Ara"
 	xaiDefaultSampleRate = 24000
+	xaiVoiceAgentModelID = "grok-voice"
 )
+
+var xaiVoiceSampleRates = []int{8000, 16000, 21050, 24000, 32000, 44100, 48000}
 
 type xaiAdapter struct {
 	openai     ProviderAdapter
@@ -59,12 +62,72 @@ func newXAIAdapter(cfg *XAIConfig, client *http.Client) ProviderAdapter {
 }
 
 func (x *xaiAdapter) ListModels(ctx context.Context) ([]ModelMetadata, error) {
-	return x.openai.ListModels(ctx)
+	models, err := x.openai.ListModels(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, model := range models {
+		if model.ID == xaiVoiceAgentModelID {
+			return models, nil
+		}
+	}
+	return append(models, buildXaiVoiceAgentModel()), nil
 }
 
 func (x *xaiAdapter) Generate(ctx context.Context, in GenerateInput) (GenerateOutput, error) {
 	adapter := x.selectAdapter(in.Metadata)
 	return adapter.Generate(ctx, in)
+}
+
+func buildXaiVoiceAgentModel() ModelMetadata {
+	voiceOptions := []map[string]interface{}{
+		{"label": "Ara", "value": "Ara"},
+		{"label": "Rex", "value": "Rex"},
+		{"label": "Sal", "value": "Sal"},
+		{"label": "Eve", "value": "Eve"},
+		{"label": "Leo", "value": "Leo"},
+	}
+	rateOptions := make([]map[string]interface{}, 0, len(xaiVoiceSampleRates))
+	for _, rate := range xaiVoiceSampleRates {
+		rateOptions = append(rateOptions, map[string]interface{}{
+			"label": fmt.Sprintf("%d", rate),
+			"value": rate,
+		})
+	}
+	return ModelMetadata{
+		ID:          xaiVoiceAgentModelID,
+		DisplayName: "Grok Voice Agent",
+		Provider:    ProviderXAI,
+		Family:      "voice-agent",
+		Capabilities: ModelCapabilities{
+			Text:             true,
+			Vision:           false,
+			Image:            false,
+			Video:            false,
+			ToolUse:          true,
+			StructuredOutput: false,
+			Reasoning:        false,
+			AudioIn:          true,
+			AudioOut:         true,
+		},
+		Inputs: []map[string]interface{}{
+			{
+				"name":     "voice",
+				"label":    "Voice",
+				"type":     "select",
+				"required": false,
+				"options":  voiceOptions,
+			},
+			{
+				"name":     "sample_rate_hz",
+				"label":    "Sample rate (Hz)",
+				"type":     "select",
+				"required": false,
+				"default":  xaiDefaultSampleRate,
+				"options":  rateOptions,
+			},
+		},
+	}
 }
 
 func (x *xaiAdapter) GenerateImage(ctx context.Context, in ImageGenerateInput) (ImageGenerateOutput, error) {

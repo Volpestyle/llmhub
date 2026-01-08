@@ -149,6 +149,7 @@ def load_catalog_models() -> List[ModelMetadata]:
         ("replicate", "replicate_models.json"),
         ("meshy", "meshy_models.json"),
         ("fal", "fal_models.json"),
+        ("xai", "xai_models.json"),
     ):
         path = _resolve_models_file(filename)
         if not path:

@@ -17,6 +17,8 @@ from ..errors import ErrorKind, KitErrorPayload, AiKitError
 from ..types import (
     ImageGenerateInput,
     ImageGenerateOutput,
+    ModelCapabilities,
+    ModelMetadata,
     SpeechGenerateInput,
     SpeechGenerateOutput,
     ToolCall,
@@ -28,6 +30,8 @@ from ..types import Provider
 _XAI_SPEECH_PROTOCOLS = ["realtime", "openai-beta.realtime-v1"]
 _XAI_DEFAULT_VOICE = "Ara"
 _XAI_DEFAULT_SAMPLE_RATE = 24000
+_XAI_VOICE_AGENT_MODEL = "grok-voice"
+_XAI_SAMPLE_RATES = [8000, 16000, 21050, 24000, 32000, 44100, 48000]
 
 # xAI Voice Catalog - https://docs.x.ai/docs/guides/voice
 XAI_VOICES = {
@@ -63,6 +67,51 @@ class XAIAdapter(OpenAIAdapter):
         self.compatibility_mode = config.compatibility_mode
         self.speech_mode = (config.speech_mode or "realtime").lower()
         self._xai_base_url = config.base_url
+
+    def list_models(self) -> List[ModelMetadata]:
+        models = super().list_models()
+        if any(model.id == _XAI_VOICE_AGENT_MODEL for model in models):
+            return models
+        models.append(
+            ModelMetadata(
+                id=_XAI_VOICE_AGENT_MODEL,
+                displayName="Grok Voice Agent",
+                provider=self.provider,
+                family="voice-agent",
+                capabilities=ModelCapabilities(
+                    text=True,
+                    vision=False,
+                    image=False,
+                    tool_use=True,
+                    structured_output=False,
+                    reasoning=False,
+                    audio_in=True,
+                    audio_out=True,
+                ),
+                inputs=[
+                    {
+                        "name": "voice",
+                        "label": "Voice",
+                        "type": "select",
+                        "required": False,
+                        "options": [
+                            {"label": name, "value": name} for name in XAI_VOICES.keys()
+                        ],
+                    },
+                    {
+                        "name": "sample_rate_hz",
+                        "label": "Sample rate (Hz)",
+                        "type": "select",
+                        "required": False,
+                        "default": _XAI_DEFAULT_SAMPLE_RATE,
+                        "options": [
+                            {"label": str(rate), "value": rate} for rate in _XAI_SAMPLE_RATES
+                        ],
+                    },
+                ],
+            )
+        )
+        return models
 
     def generate_image(self, input: ImageGenerateInput) -> ImageGenerateOutput:
         raise AiKitError(

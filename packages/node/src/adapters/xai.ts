@@ -24,6 +24,8 @@ const SPEECH_MODE_KEY = "xai:speech-mode";
 const DEFAULT_VOICE = "Ara";
 const DEFAULT_SAMPLE_RATE = 24000;
 const REALTIME_PROTOCOLS = ["realtime", "openai-beta.realtime-v1"];
+const VOICE_AGENT_MODEL_ID = "grok-voice";
+const VOICE_SAMPLE_RATES = [8000, 16000, 21050, 24000, 32000, 44100, 48000];
 
 /** xAI Voice Catalog - https://docs.x.ai/docs/guides/voice */
 export const XAI_VOICES = {
@@ -71,7 +73,11 @@ export class XAIAdapter implements ProviderAdapter {
   }
 
   async listModels(): Promise<ModelMetadata[]> {
-    return this.openAICompat.listModels();
+    const models = await this.openAICompat.listModels();
+    if (models.some((model) => model.id === VOICE_AGENT_MODEL_ID)) {
+      return models;
+    }
+    return [...models, buildVoiceAgentModel()];
   }
 
   async generate(input: GenerateInput): Promise<GenerateOutput> {
@@ -546,6 +552,49 @@ export class XAIAdapter implements ProviderAdapter {
       });
     });
   }
+}
+
+function buildVoiceAgentModel(): ModelMetadata {
+  return {
+    id: VOICE_AGENT_MODEL_ID,
+    displayName: "Grok Voice Agent",
+    provider: Provider.XAI,
+    family: "voice-agent",
+    capabilities: {
+      text: true,
+      vision: false,
+      image: false,
+      video: false,
+      tool_use: true,
+      structured_output: false,
+      reasoning: false,
+      audio_in: true,
+      audio_out: true,
+    },
+    inputs: [
+      {
+        name: "voice",
+        label: "Voice",
+        type: "select",
+        required: false,
+        options: Object.keys(XAI_VOICES).map((voice) => ({
+          label: voice,
+          value: voice,
+        })),
+      },
+      {
+        name: "sample_rate_hz",
+        label: "Sample rate (Hz)",
+        type: "select",
+        required: false,
+        default: DEFAULT_SAMPLE_RATE,
+        options: VOICE_SAMPLE_RATES.map((rate) => ({
+          label: String(rate),
+          value: rate,
+        })),
+      },
+    ],
+  };
 }
 
 function resolveSpeechMode(

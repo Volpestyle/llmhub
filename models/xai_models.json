@@ -1,0 +1,50 @@
+[
+  {
+    "id": "grok-voice",
+    "provider": "xai",
+    "displayName": "Grok Voice Agent",
+    "family": "voice-agent",
+    "description": "Realtime voice agent over the xAI WebSocket API.",
+    "capabilities": {
+      "text": true,
+      "vision": false,
+      "image": false,
+      "tool_use": true,
+      "structured_output": false,
+      "reasoning": false,
+      "audio_in": true,
+      "audio_out": true
+    },
+    "inputs": [
+      {
+        "name": "voice",
+        "label": "Voice",
+        "type": "select",
+        "required": false,
+        "options": [
+          { "label": "Ara", "value": "Ara" },
+          { "label": "Rex", "value": "Rex" },
+          { "label": "Sal", "value": "Sal" },
+          { "label": "Eve", "value": "Eve" },
+          { "label": "Leo", "value": "Leo" }
+        ]
+      },
+      {
+        "name": "sample_rate_hz",
+        "label": "Sample rate (Hz)",
+        "type": "select",
+        "required": false,
+        "default": 24000,
+        "options": [
+          { "label": "8000", "value": 8000 },
+          { "label": "16000", "value": 16000 },
+          { "label": "21050", "value": 21050 },
+          { "label": "24000", "value": 24000 },
+          { "label": "32000", "value": 32000 },
+          { "label": "44100", "value": 44100 },
+          { "label": "48000", "value": 48000 }
+        ]
+      }
+    ]
+  }
+]

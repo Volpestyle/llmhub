@@ -40,6 +40,7 @@ type ModelMetadata struct {
 	Provider      Provider          `json:"provider"`
 	Family        string            `json:"family,omitempty"`
 	Capabilities  ModelCapabilities `json:"capabilities"`
+	Inputs        []map[string]interface{} `json:"inputs,omitempty"`
 	ContextWindow int               `json:"contextWindow,omitempty"`
 	TokenPrices   *TokenPrices      `json:"tokenPrices,omitempty"`
 	VideoPrices   map[string]float64 `json:"videoPrices,omitempty"`

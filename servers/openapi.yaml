@@ -152,6 +152,10 @@ components:
             reasoning: { type: boolean }
             audio_in: { type: boolean }
             audio_out: { type: boolean }
+        inputs:
+          type: array
+          items:
+            type: object
         contextWindow:
           type: integer
         tokenPrices:

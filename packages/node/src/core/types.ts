@@ -37,6 +37,7 @@ export interface ModelMetadata {
   provider: Provider;
   family?: string;
   capabilities: ModelCapabilities;
+  inputs?: Array<Record<string, unknown>>;
   contextWindow?: number;
   tokenPrices?: TokenPrices;
   videoPrices?: Record<string, number>;
