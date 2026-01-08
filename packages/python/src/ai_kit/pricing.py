@@ -216,37 +216,172 @@ def estimate_transcribe_cost(
     )
 
 
-def _video_price_per_second(curated: Dict[str, Any]) -> Optional[float]:
+def _normalize_resolution_key(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    cleaned = "".join(ch for ch in value.lower() if ch.isalnum())
+    return cleaned or None
+
+
+def _first_price(raw: Dict[str, Any], keys: list[str]) -> Optional[float]:
+    for key in keys:
+        if key in raw:
+            value = _coerce_float(raw.get(key))
+            if value is not None:
+                return value
+    return None
+
+
+def _video_price_per_second(
+    curated: Dict[str, Any],
+    *,
+    resolution: Optional[str] = None,
+    with_audio: Optional[bool] = None,
+) -> Optional[float]:
     raw = curated.get("videoPrices") or curated.get("video_prices")
     if not isinstance(raw, dict):
         return None
-    per_second = _coerce_float(
-        raw.get("per_second_usd") or raw.get("perSecond") or raw.get("per_second")
+
+    resolution_key = _normalize_resolution_key(resolution)
+    if resolution_key:
+        if with_audio:
+            price = _first_price(
+                raw,
+                [
+                    f"per_second_usd_{resolution_key}_with_audio",
+                    f"per_second_{resolution_key}_with_audio",
+                    f"perSecondUsd{resolution_key}WithAudio",
+                ],
+            )
+            if price is not None:
+                return price
+        price = _first_price(
+            raw,
+            [
+                f"per_second_usd_{resolution_key}",
+                f"per_second_{resolution_key}",
+                f"perSecondUsd{resolution_key}",
+            ],
+        )
+        if price is not None:
+            return price
+
+    if with_audio:
+        price = _first_price(
+            raw,
+            [
+                "per_second_usd_with_audio",
+                "per_second_with_audio",
+                "perSecondUsdWithAudio",
+            ],
+        )
+        if price is not None:
+            return price
+
+    price = _first_price(
+        raw,
+        [
+            "per_second_usd",
+            "perSecond",
+            "per_second",
+            "perSecondUsd",
+        ],
     )
-    if per_second is not None:
-        return per_second
-    per_minute = _coerce_float(raw.get("per_minute_usd") or raw.get("perMinute") or raw.get("per_minute"))
+    if price is not None:
+        return price
+
+    max_price = _first_price(raw, ["per_second_usd_max", "perSecondMax", "per_second_max"])
+    if max_price is not None:
+        return max_price
+    min_price = _first_price(raw, ["per_second_usd_min", "perSecondMin", "per_second_min"])
+    if min_price is not None:
+        return min_price
+
+    resolution_prices: list[float] = []
+    for key, value in raw.items():
+        if not isinstance(key, str):
+            continue
+        if not key.startswith("per_second_usd_") and not key.startswith("per_second_"):
+            continue
+        if key.endswith("_min") or key.endswith("_max") or key.endswith("_with_audio"):
+            continue
+        coerced = _coerce_float(value)
+        if coerced is not None:
+            resolution_prices.append(coerced)
+    if resolution_prices:
+        return max(resolution_prices)
+
+    per_minute = _first_price(
+        raw,
+        [
+            "per_minute_usd",
+            "perMinute",
+            "per_minute",
+        ],
+    )
     if per_minute is not None:
         return per_minute / 60.0
     return None
 
 
-def _video_price_per_request(curated: Dict[str, Any]) -> Optional[float]:
+def _video_price_per_request(
+    curated: Dict[str, Any],
+    *,
+    resolution: Optional[str] = None,
+    with_audio: Optional[bool] = None,
+) -> Optional[float]:
     raw = curated.get("videoPrices") or curated.get("video_prices")
     if not isinstance(raw, dict):
         return None
-    return _coerce_float(raw.get("per_request_usd") or raw.get("perRequest") or raw.get("per_request"))
+    resolution_key = _normalize_resolution_key(resolution)
+    if resolution_key:
+        if with_audio:
+            price = _first_price(
+                raw,
+                [
+                    f"per_request_usd_{resolution_key}_with_audio",
+                    f"per_request_{resolution_key}_with_audio",
+                    f"perRequestUsd{resolution_key}WithAudio",
+                ],
+            )
+            if price is not None:
+                return price
+        price = _first_price(
+            raw,
+            [
+                f"per_request_usd_{resolution_key}",
+                f"per_request_{resolution_key}",
+                f"perRequestUsd{resolution_key}",
+            ],
+        )
+        if price is not None:
+            return price
+    if with_audio:
+        price = _first_price(
+            raw,
+            [
+                "per_request_usd_with_audio",
+                "per_request_with_audio",
+                "perRequestUsdWithAudio",
+            ],
+        )
+        if price is not None:
+            return price
+    return _first_price(raw, ["per_request_usd", "perRequest", "per_request"])
 
 
 def estimate_video_cost(
     provider: Provider,
     model_id: str,
     duration_seconds: Optional[float],
+    *,
+    resolution: Optional[str] = None,
+    with_audio: Optional[bool] = None,
 ) -> Optional[CostBreakdown]:
     curated = find_curated_model(provider, model_id)
     if not curated:
         return None
-    per_request = _video_price_per_request(curated)
+    per_request = _video_price_per_request(curated, resolution=resolution, with_audio=with_audio)
     if per_request is not None:
         return CostBreakdown(
             input_cost_usd=per_request,
@@ -261,7 +396,7 @@ def estimate_video_cost(
         return None
     if duration_value <= 0:
         return None
-    rate_per_second = _video_price_per_second(curated)
+    rate_per_second = _video_price_per_second(curated, resolution=resolution, with_audio=with_audio)
     if rate_per_second is None or rate_per_second <= 0:
         return None
     total = round(duration_value * rate_per_second, 6)
