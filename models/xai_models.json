@@ -45,6 +45,9 @@
           { "label": "48000", "value": 48000 }
         ]
       }
-    ]
+    ],
+    "audioPrices": {
+      "perMinute": 0.05
+    }
   }
 ]

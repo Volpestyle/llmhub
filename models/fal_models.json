@@ -297,7 +297,13 @@
         "type": "number",
         "required": false
       }
-    ]
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.10,
+      "per_second_usd_480p": 0.10,
+      "per_second_usd_580p": 0.15,
+      "per_second_usd_720p": 0.20
+    }
   },
   {
     "id": "fal-ai/bytedance/omnihuman/v1.5",
@@ -352,7 +358,10 @@
           { "label": "1080p", "value": "1080p" }
         ]
       }
-    ]
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.16
+    }
   },
   {
     "id": "fal-ai/infinitalk",
@@ -428,7 +437,11 @@
           { "label": "High", "value": "high" }
         ]
       }
-    ]
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.2,
+      "per_second_usd_720p": 0.4
+    }
   },
   {
     "id": "fal-ai/creatify/aurora",
@@ -494,7 +507,12 @@
           { "label": "720p", "value": "720p" }
         ]
       }
-    ]
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.14,
+      "per_second_usd_480p": 0.10,
+      "per_second_usd_720p": 0.14
+    }
   },
   {
     "id": "veed/fabric-1.0",
@@ -535,7 +553,11 @@
           { "label": "720p", "value": "720p" }
         ]
       }
-    ]
+    ],
+    "videoPrices": {
+      "per_second_usd_min": 0.08,
+      "per_second_usd_max": 0.15
+    }
   },
   {
     "id": "fal-ai/kling-video/ai-avatar/v2/standard",
@@ -573,7 +595,10 @@
         "required": false,
         "default": "."
       }
-    ]
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.0562
+    }
   },
   {
     "id": "fal-ai/kling-video/ai-avatar/v2/pro",
@@ -611,7 +636,10 @@
         "required": false,
         "default": "."
       }
-    ]
+    ],
+    "videoPrices": {
+      "per_second_usd": 0.115
+    }
   },
   {
     "id": "fal-ai/sync-lipsync/v2/pro",
