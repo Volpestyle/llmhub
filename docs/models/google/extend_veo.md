@@ -1,0 +1,1 @@
+https://docs.cloud.google.com/vertex-ai/generative-ai/docs/video/extend-a-veo-video#googlegenaisdk_videogen_with_image-python_genai_sdk
